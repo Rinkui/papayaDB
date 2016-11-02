@@ -20,7 +20,7 @@ import io.vertx.ext.web.handler.StaticHandler;
 // --add-exports java.base/sun.nio.ch=ALL-UNNAMED
 // --add-exports java.base/sun.net.dns=ALL-UNNAMED
 // ExampleApp
-public class ExampleApp extends AbstractVerticle {
+public class ExampleServer extends AbstractVerticle {
   @Override
   public void start() {
     Router router = Router.router(vertx);
@@ -64,6 +64,6 @@ public class ExampleApp extends AbstractVerticle {
     System.setProperty("vertx.disableFileCaching", "true");
     
     Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(new ExampleApp());
+    vertx.deployVerticle(new ExampleServer());
   }
 }

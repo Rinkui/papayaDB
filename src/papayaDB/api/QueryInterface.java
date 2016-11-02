@@ -8,5 +8,10 @@ import java.util.function.Consumer;
  *
  */
 public interface QueryInterface {
-	public void processQuery(String query,Consumer<QueryAnswer> callback);
+	/**
+	 * Traite la requête demandée par l'appel de méthode. Le format de la requête et sa méthode d'envoi son laissés à l'appréciation des classes implémentant l'interface.
+	 * @param query la requête
+	 * @param callback le {@link Consumer} qui recevra le {@link QueryAnswer} de réponse de la requête.
+	 */
+	public void processQuery(String query, Consumer<QueryAnswer> callback);
 }
