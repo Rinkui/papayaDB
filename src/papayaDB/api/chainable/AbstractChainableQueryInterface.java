@@ -1,5 +1,8 @@
 package papayaDB.api.chainable;
 
+import java.util.function.Consumer;
+
+import papayaDB.api.QueryAnswer;
 import papayaDB.api.QueryInterface;
 
 /**
@@ -8,5 +11,11 @@ import papayaDB.api.QueryInterface;
  * Cette implémentation définit le fonctionnement d'une AbstractChainableQueryInterface.
  */
 public class AbstractChainableQueryInterface implements QueryInterface {
+	
+	@Override
+	public void processQuery(String query,Consumer<QueryAnswer> callback) {
+		throw new UnsupportedOperationException();
+	}
+	
 	
 }
