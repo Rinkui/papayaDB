@@ -8,5 +8,11 @@ import papayaDB.api.chainable.AbstractChainableQueryInterface;
  *
  */
 public class RESTQueryInterface extends AbstractChainableQueryInterface {
+
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

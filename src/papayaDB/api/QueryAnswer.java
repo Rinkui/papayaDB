@@ -8,7 +8,12 @@ public class QueryAnswer {
 	
 	public QueryAnswer(JsonObject answer) {
 		this.answer = answer;
-		
+		this.status = QueryAnswerStatus.OK;
 		//TODO
+	}
+	
+	@Override
+	public String toString() {
+		return status.name()+": "+answer.encodePrettily();
 	}
 }
