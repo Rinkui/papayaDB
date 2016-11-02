@@ -19,5 +19,6 @@
 	<classpathentry kind="lib" path="C:/Users/genro/workspace/papayaDB/mini-vertx/mini-vertx/vertx/lib/netty-resolver-4.1.5.Final.jar"/>
 	<classpathentry kind="lib" path="C:/Users/genro/workspace/papayaDB/mini-vertx/mini-vertx/vertx/lib/netty-resolver-dns-4.1.5.Final.jar"/>
 	<classpathentry kind="lib" path="C:/Users/genro/workspace/papayaDB/mini-vertx/mini-vertx/vertx/lib/netty-transport-4.1.5.Final.jar"/>
+	<classpathentry kind="lib" path="C:/Users/genro/workspace/papayaDB/mini-vertx/mini-vertx/vertx/lib/netty-codec-http-4.1.5.Final.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

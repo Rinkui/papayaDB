@@ -1,6 +1,6 @@
 package papayaDB.db;
 
-import papayaDB.chainable.AbstractChainableQueryInterface;
+import papayaDB.api.chainable.AbstractChainableQueryInterface;
 
 public class LocalDataInterface extends AbstractChainableQueryInterface {
 

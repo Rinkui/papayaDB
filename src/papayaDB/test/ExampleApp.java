@@ -16,7 +16,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 
 
-
 // java
 // --add-exports java.base/sun.nio.ch=ALL-UNNAMED
 // --add-exports java.base/sun.net.dns=ALL-UNNAMED
@@ -32,12 +31,13 @@ public class ExampleApp extends AbstractVerticle {
     
     // otherwise serve static pages
     router.route().handler(StaticHandler.create());
-
+    
     vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     System.out.println("listen on port 8080");
   }
   
   private void getAllDBs(RoutingContext routingContext) {
+	  System.out.println("Getting all dbs");
     routingContext.response()
        .putHeader("content-type", "application/json")
        .end(List.of("bd1", "bd2").stream().map(Json::encodePrettily).collect(joining(", ", "[", "]")));
@@ -61,7 +61,7 @@ public class ExampleApp extends AbstractVerticle {
     // development option, avoid caching to see changes of
     // static files without having to reload the application,
     // obviously, this line should be commented in production
-    //System.setProperty("vertx.disableFileCaching", "true");
+    System.setProperty("vertx.disableFileCaching", "true");
     
     Vertx vertx = Vertx.vertx();
     vertx.deployVerticle(new ExampleApp());
