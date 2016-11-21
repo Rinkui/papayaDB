@@ -1,19 +1,17 @@
 package papayaDB.db;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 public class Tree {
 	static class Node {
-		Request request;
+		final Request request;
 		List<Integer> answer; // Integer car on ne stockera que les ids des
 								// objets
-		HashMap<Request, Node> linkedRequests; // string pour le nom de la
-												// requete pour les retrouver
-												// rapidement, Node pour le
-												// noeud correspondant
+		HashMap<Request, Node> linkedRequests; // on fait une hashmap pour
+												// trouver le request facilement
 
 		public Node(Request request, List<Integer> answer) {
 			this.request = request;
@@ -31,14 +29,15 @@ public class Tree {
 		this.head = new Node(null, null); // la tête n'aura que des fils
 	}
 
-	public void add(LinkedList<Request> request, List<Integer> answer) {
+	public void add(List<Request> requestList, List<Integer> answer) {
 
 		// /!\ trouver un moyen de renvoyer le noeud d'ajout OU le noeud après
 		// lequel il doit être ajouté
 
 		// vérifier si la requete existe
 
-		Node isPresent = containsReq(request, head);
+		Collections.sort(requestList);
+		Node isPresent = containsRequest(requestList, head);
 
 		// si elle existe, addId
 
@@ -54,11 +53,49 @@ public class Tree {
 
 		// sinon on l'ajoute là ou elle doit aller
 	}
+	
+	private Node addAtNode(List<Request> requestList, Node atThisNode){
+		if( requestList.isEmpty())
+			return atThisNode;
+		
+		Request currentReq = requestList.get(0);
+		
+		atThisNode.linkedRequests.put(currentReq, new Node(requestList.get(0), new ArrayList<Integer>())); // /!\ VALEUR A MODIFIER et à CALCULER
+		requestList.remove(0);
+		return addAtNode(requestList, atThisNode.linkedRequests.get(currentReq));
+	}
+	
+	private Node containsRequest(List<Request> requestList, Node current) {
+		if (current.linkedRequests.isEmpty() && requestList.isEmpty())
+			return current;
 
-	private Node containsReq(LinkedList<Request> req, Node current) {
-		// trouver toutes les req dans l'arbre. si elle y est en entière alors
-		// on retourne le noeud
-		return null;
+		boolean isContained = false;
+		Node exactNode = null;
+		for (Request request : requestList) {
+			if (current.linkedRequests.containsKey(request)) {
+				isContained = true;
+				requestList.remove(request);
+				exactNode = containsRequest(requestList, current.linkedRequests.get(request));
+			}
+		}
+
+		// la requete existe déjà
+		if (exactNode != null)
+			return exactNode;
+
+		if (!isContained) {
+			// alors on a fait toute la liste et aucune requete n'est contenu
+			// dans les fils, alors on ajoute toutes les requetes ici
+			// on récupère alors le dernier noeud et on le retourne
+			
+			addAtNode(requestList, current);
+		}
+
+		// si c'est contenu mais que le noeud exacte n'existe pas c'est qu'il y
+		// a un probleme puisque si c'est contenu alors le noeud a été ajouté
+		// avant -> exception ???
+
+		return exactNode;
 	}
 
 	private boolean containsRec(Integer id, Node current) {

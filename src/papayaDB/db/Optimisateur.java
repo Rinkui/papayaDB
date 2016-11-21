@@ -20,9 +20,9 @@ public class Optimisateur {
 			this.filterValue = value;
 		}
 		
-		Node(){
-			
-		}
+//		Node(){
+//			
+//		}
 		
 		@Override
 		public int hashCode() {

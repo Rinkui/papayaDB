@@ -1,6 +1,6 @@
 package papayaDB.db;
 
-public class Request {
+public class Request implements Comparable<Request>{
 	private final String req;
 	private final String reqValue;
 
@@ -48,5 +48,10 @@ public class Request {
 		} else if (!reqValue.equals(other.reqValue))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Request req2) {
+		return this.req.compareTo(req2.req);
 	}
 }
