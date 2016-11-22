@@ -35,7 +35,7 @@ public class TestServer extends AbstractVerticle{
 		  for(Route route : router.getRoutes()){
 			  System.out.println(route.getPath());
 		  }
-		  System.out.println("END");
+		  System.out.println("END LIST");
 	  }
 
 
