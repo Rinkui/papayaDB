@@ -54,11 +54,6 @@ public class Tree {
 		// sinon on l'ajoute là ou elle doit aller
 	}
 	
-	
-	private void nouvellefonction(){
-		
-	}
-	
 	private Node addAtNode(List<Request> requestList, Node atThisNode){
 		if( requestList.isEmpty())
 			return atThisNode;
