@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class Tree {
 	static class Node {
 		final Request request;
-		List<Integer> answer; // Integer car on ne stockera que les ids des
-								// objets
+		List<Integer> answer; // Integer car on ne stockera que l'index de début
+								// de chaque objet
 		HashMap<Request, Node> linkedRequests; // on fait une hashmap pour
 												// trouver le request facilement
 
@@ -19,6 +20,7 @@ public class Tree {
 		}
 
 		public void addLinkedRequest(Node node) {
+			Objects.requireNonNull(node);
 			linkedRequests.put(node.request, node);
 		}
 	}
@@ -27,9 +29,11 @@ public class Tree {
 
 	public Tree() {
 		this.head = new Node(null, null); // la tête n'aura que des fils
+		this.head.linkedRequests = new HashMap<Request, Node>();
 	}
 
-	public void add(List<Request> requestList, List<Integer> answer) {
+	public void add(List<Request> requestList) {
+		Objects.requireNonNull(requestList);
 		Collections.sort(requestList);
 		Node isPresent = containsRequest(requestList, head);
 
