@@ -30,72 +30,43 @@ public class Tree {
 	}
 
 	public void add(List<Request> requestList, List<Integer> answer) {
-
-		// /!\ trouver un moyen de renvoyer le noeud d'ajout OU le noeud après
-		// lequel il doit être ajouté
-
-		// vérifier si la requete existe
-
 		Collections.sort(requestList);
 		Node isPresent = containsRequest(requestList, head);
 
-		// si elle existe, addId
-
-		if (isPresent != null) {
-			isPresent.answer.addAll(answer);
-			return;
+		if (!requestList.isEmpty()) {
+			addAtNode(requestList, isPresent);
 		}
-
-		// sinon ajouter la requete là ou elle doit aller
-
-		// si la requete n'est pas composée de plusieurs partie alors on
-		// l'ajoute à la racine
-
-		// sinon on l'ajoute là ou elle doit aller
 	}
-	
-	private Node addAtNode(List<Request> requestList, Node atThisNode){
-		if( requestList.isEmpty())
+
+	private Node addAtNode(List<Request> requestList, Node atThisNode) {
+		if (requestList.isEmpty())
 			return atThisNode;
-		
+
 		Request currentReq = requestList.get(0);
-		
-		atThisNode.linkedRequests.put(currentReq, new Node(requestList.get(0), new ArrayList<Integer>())); // /!\ VALEUR A MODIFIER et à CALCULER
+
+		// TODO calculer les valeurs à ajouter dans new ArrayList<Integer>()
+		atThisNode.linkedRequests.put(currentReq, new Node(requestList.get(0), new ArrayList<Integer>()));
+
 		requestList.remove(0);
 		return addAtNode(requestList, atThisNode.linkedRequests.get(currentReq));
 	}
-	
+
 	private Node containsRequest(List<Request> requestList, Node current) {
 		if (current.linkedRequests.isEmpty() && requestList.isEmpty())
 			return current;
 
-		boolean isContained = false;
-		Node exactNode = null;
+		Node resNode = null;
 		for (Request request : requestList) {
 			if (current.linkedRequests.containsKey(request)) {
-				isContained = true;
 				requestList.remove(request);
-				exactNode = containsRequest(requestList, current.linkedRequests.get(request));
+				resNode = containsRequest(requestList, current.linkedRequests.get(request));
 			}
 		}
 
-		// la requete existe déjà
-		if (exactNode != null)
-			return exactNode;
+		if (resNode != null)
+			return resNode;
 
-		if (!isContained) {
-			// alors on a fait toute la liste et aucune requete n'est contenu
-			// dans les fils, alors on ajoute toutes les requetes ici
-			// on récupère alors le dernier noeud et on le retourne
-			
-			addAtNode(requestList, current);
-		}
-
-		// si c'est contenu mais que le noeud exacte n'existe pas c'est qu'il y
-		// a un probleme puisque si c'est contenu alors le noeud a été ajouté
-		// avant -> exception ???
-
-		return exactNode;
+		return current;
 	}
 
 	private boolean containsRec(Integer id, Node current) {
