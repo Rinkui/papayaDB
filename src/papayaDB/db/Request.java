@@ -52,6 +52,9 @@ public class Request implements Comparable<Request>{
 
 	@Override
 	public int compareTo(Request req2) {
-		return this.req.compareTo(req2.req);
+		int reqRes = this.req.compareTo(req2.req);
+		if( reqRes == 0)
+			return this.reqValue.compareTo(req2.reqValue);
+		return reqRes;
 	}
 }
