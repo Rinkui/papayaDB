@@ -10,18 +10,10 @@ import java.nio.channels.FileChannel.MapMode;
 public class Reader {
 	private MappedByteBuffer map;
 	private int firstFieldPos;
-	private int firstObjectPos;
+	private int nbObjectsPos;
 
-	private Reader(FileChannel fc) throws IOException {
-		this.map = fc.map(MapMode.READ_WRITE, 0, fc.size());
-	}
-
-	public Reader getReader(File file) throws IOException {
-		FileInputStream in = new FileInputStream(file);
-		FileChannel fc = in.getChannel();
-		Reader reader = new Reader(fc);
-		in.close();
-		return reader;
+	public Reader(MappedByteBuffer map){
+		this.map = map;
 	}
 
 	// on doit lire une fois en entier la première fois pour retenir les index
@@ -38,22 +30,48 @@ public class Reader {
 		firstFieldPos = map.position();
 		return sb.toString();
 	}
+	
+	private int[] loopReading(int[] index){
+		int nbChar;
+		for (int i = 0; i < index.length; i++) {
+			index[i] = map.position();
+			nbChar = map.getInt();
+			for (int j = 0; j < nbChar; j++) {
+				map.getChar();
+			}
+		}
+		return index;
+	}
 
 	// a nouveau on replace le curseur au bon endroit
 	public int[] firstFieldsReading() {
-		int i, nbFields;
-		char c;
+		if (firstFieldPos == 0)
+			throw new IllegalStateException("Type non initialisé");
 		map.position(firstFieldPos);
-		nbFields = map.getInt();
+		int nbFields = map.getInt();
 		int[] fieldsIndex = new int[nbFields];
-		// TODO
-		// il faut alterner les getint() et getchar() quelle est la condition
-		// d'arrêt sachant que get bouge le curseur ?
-		return null;
+		fieldsIndex = loopReading(fieldsIndex);
+		nbObjectsPos = map.position();
+		return fieldsIndex;
 	}
 
-	public int[] firstObjectsReading() {
-		return null;
+	public int[] firstObjectsReading(int nbFields) {
+		if (nbObjectsPos == 0)
+			throw new IllegalStateException("Champs non initialisés");
+		map.position(nbObjectsPos);
+		int nbObjects = map.getInt();
+		int[] objectsIndex = new int[nbObjects];
+		return loopReading(objectsIndex);
+	}
+	
+	public String getFieldValue(int firstIndex){
+		StringBuilder sb = new StringBuilder();
+		map.position(firstIndex);
+		int size = map.getInt();
+		for(int i = 0 ; i < size ; i ++ ){
+			sb.append(map.getChar());
+		}
+		return sb.toString();
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
