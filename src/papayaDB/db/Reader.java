@@ -28,7 +28,6 @@ public class Reader {
 	// pour les deux tableaux on retient l'index de la taille du champs
 	// à changer : on stocke le nom des champs
 	private String[] fieldsNames = null; // indexs des champs
-	private int[] fieldsSizes = null; // taille max des champs
 	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on trouve
 								// dans le fichier de int)
 	private String type = null;
@@ -52,11 +51,9 @@ public class Reader {
 			firstTypeReading();
 		int nbFields = map.getInt();
 		fieldsNames = new String[nbFields];
-		fieldsSizes = new int[nbFields];
 		int nbChar;
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < nbFields; i++) {
-			fieldsSizes[i] = map.getInt();
 			nbChar = map.getInt();
 			for (int j = 0; j < nbChar; j++) {
 				map.getChar();
@@ -66,11 +63,11 @@ public class Reader {
 		}
 	}
 
-	private void firstObjectsReading(int nbFields, int margin) {
-		if(objectsIndex == null)
+	private void firstObjectsReading(int nbFields) {
+		if(fieldsNames == null)
 			firstFieldsReading();
 		int nbObjects = map.getInt();
-		objectsIndex = new int[nbObjects + margin];
+		objectsIndex = new int[nbObjects + MARGIN];
 		int nbChar;
 		for (int i = 0; i < nbObjects; i++) {
 			objectsIndex[i] = map.position();
@@ -89,14 +86,29 @@ public class Reader {
 		return -1;
 	}
 	
-	public String getFieldValue(int objectIndex, String fieldName){
-		if(fieldsNames == null)
-			firstFieldsReading();
-		int indexField;
-		if( (indexField = getFieldIndex(fieldName)) == -1 )
+	private String readFieldValue(int objectIndex, int fieldIndex){
+		map.position(objectsIndex[objectIndex + fieldIndex]);
+		int size = map.getInt();
+		if(size == 0)
 			return "";
+		StringBuilder sb = new StringBuilder();
+		for(int i = 0 ; i < size ; i ++){
+			sb.append(map.getChar());
+		}
+		return sb.toString();
+	}
+	
+	public String getFieldValue(int objectIndex, String fieldName){
+		if( objectsIndex == null )
+			firstObjectsReading(fieldName.length());
+		int fieldIndex;
+		if( (fieldIndex = getFieldIndex(fieldName)) == -1 )
+			throw new IllegalArgumentException("Field name doesn't exist");
+		return readFieldValue(objectIndex, fieldIndex);
+	}
+	
+	public void suppressObject(int objecIndex){
 		
-		return "";
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon

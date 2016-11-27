@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
+
+import sun.java2d.ReentrantContext;
 
 public class Tree {
 	static class Node {
@@ -26,6 +29,7 @@ public class Tree {
 	}
 
 	private final Node head;
+	private final ReentrantLock lock = new ReentrantLock();
 
 	public Tree() {
 		this.head = new Node(null, null); // la tête n'aura que des fils
@@ -33,12 +37,17 @@ public class Tree {
 	}
 
 	public void add(List<Request> requestList) {
-		Objects.requireNonNull(requestList);
-		Collections.sort(requestList);
-		Node isPresent = containsRequest(requestList, head);
+		lock.lock();
+		try {
+			Objects.requireNonNull(requestList);
+			Collections.sort(requestList);
+			Node isPresent = containsRequest(requestList, head);
 
-		if (!requestList.isEmpty()) {
-			addAtNode(requestList, isPresent);
+			if (!requestList.isEmpty()) {
+				addAtNode(requestList, isPresent);
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -85,7 +94,12 @@ public class Tree {
 	}
 
 	public boolean contains(Integer id) {
-		return containsRec(id, head);
+		lock.lock();
+		try {
+			return containsRec(id, head);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	public void addId(Integer id) {
