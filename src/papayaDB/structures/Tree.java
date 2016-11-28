@@ -1,4 +1,4 @@
-package papayaDB.db;
+package papayaDB.structures;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 
+import papayaDB.db.Request;
 import sun.java2d.ReentrantContext;
 
 public class Tree {

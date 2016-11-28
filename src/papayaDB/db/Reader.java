@@ -2,6 +2,8 @@ package papayaDB.db;
 
 import java.nio.MappedByteBuffer;
 
+import papayaDB.structures.HoleLinkedList;
+
 // gere les index
 // deux fichiers par type d'objet:
 // - un avec les index
@@ -28,8 +30,9 @@ public class Reader {
 	// pour les deux tableaux on retient l'index de la taille du champs
 	// à changer : on stocke le nom des champs
 	private String[] fieldsNames = null; // indexs des champs
-	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on trouve
-								// dans le fichier de int)
+	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on
+										// trouve dans le fichier de int)
+	private HoleLinkedList holeList;
 	private String type = null;
 
 	public Reader(MappedByteBuffer map) {
@@ -47,7 +50,7 @@ public class Reader {
 	}
 
 	private void firstFieldsReading() {
-		if(type == null)
+		if (type == null)
 			firstTypeReading();
 		int nbFields = map.getInt();
 		fieldsNames = new String[nbFields];
@@ -64,7 +67,7 @@ public class Reader {
 	}
 
 	private void firstObjectsReading(int nbFields) {
-		if(fieldsNames == null)
+		if (fieldsNames == null)
 			firstFieldsReading();
 		int nbObjects = map.getInt();
 		objectsIndex = new int[nbObjects + MARGIN];
@@ -77,38 +80,60 @@ public class Reader {
 			}
 		}
 	}
-	
-	private int getFieldIndex(String fieldName){
-		for(int i = 0 ; i < fieldsNames.length ; i ++){
-			if( fieldName.equals(fieldsNames[i]) )
+
+	private int getFieldIndex(String fieldName) {
+		for (int i = 0; i < fieldsNames.length; i++) {
+			if (fieldName.equals(fieldsNames[i]))
 				return i;
 		}
 		return -1;
 	}
-	
-	private String readFieldValue(int objectIndex, int fieldIndex){
+
+	private String readFieldValue(int objectIndex, int fieldIndex) {
 		map.position(objectsIndex[objectIndex + fieldIndex]);
 		int size = map.getInt();
-		if(size == 0)
+		if (size == 0)
 			return "";
 		StringBuilder sb = new StringBuilder();
-		for(int i = 0 ; i < size ; i ++){
+		for (int i = 0; i < size; i++) {
 			sb.append(map.getChar());
 		}
 		return sb.toString();
 	}
-	
-	public String getFieldValue(int objectIndex, String fieldName){
-		if( objectsIndex == null )
+
+	public String getFieldValue(int objectIndex, String fieldName) {
+		if (objectsIndex == null)
 			firstObjectsReading(fieldName.length());
 		int fieldIndex;
-		if( (fieldIndex = getFieldIndex(fieldName)) == -1 )
+		if ((fieldIndex = getFieldIndex(fieldName)) == -1)
 			throw new IllegalArgumentException("Field name doesn't exist");
 		return readFieldValue(objectIndex, fieldIndex);
 	}
 	
-	public void suppressObject(int objecIndex){
-		
+	private int getObjectsSize(int objectIndex){
+		map.position(objectIndex);
+		int size = map.getInt();
+		int byteSize = 4, nbChar;
+		for(int i = 0 ; i < size ; i ++){
+			nbChar = map.getInt();
+			byteSize += 4;
+			for (int j = 0; j < nbChar; j++) {
+				byteSize += 2;
+			}
+		}
+		return byteSize;
+	}
+
+	public void suppressObject(int objectIndex) {
+		if(holeList == null){
+			new HoleLinkedList(objectIndex, getObjectsSize(objectIndex));
+			return;
+		}
+		holeList.addHole(objectIndex, getObjectsSize(objectIndex));
+	}
+	
+	public void addObject(){
+		// sous quelle forme sera l'objet ???
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
