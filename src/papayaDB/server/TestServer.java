@@ -6,10 +6,10 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
+import papayaDB.structures.Request;
 
 public class TestServer extends AbstractVerticle{
 	@Override
@@ -17,9 +17,7 @@ public class TestServer extends AbstractVerticle{
 	    Router router = Router.router(vertx);
 	    
 	    // route to JSON REST APIs
-	    router.get("/*").handler(this::test);
-//	    router.get("/all").handler(routingContext -> this.test(routingContext,router));
-//	    router.get("/get/:name/:id").handler(routingContext -> this.test(routingContext,router));
+	    router.get("/*").handler(this::get);
 	    
 	    // otherwise serve static pages
 	    router.route().handler(StaticHandler.create());
@@ -28,7 +26,7 @@ public class TestServer extends AbstractVerticle{
 	    System.out.println("listen on port 8080");
 	  }
 	  
-	  private void test(RoutingContext routingContext){
+	  private void get(RoutingContext routingContext){
 		  HttpServerResponse response = routingContext.response();
 		  HttpServerRequest request = routingContext.request();
 		  String path = request.path().substring(1).replaceAll("%22", "\"").replaceAll("%20", " ");
@@ -39,13 +37,20 @@ public class TestServer extends AbstractVerticle{
 			  response.setStatusCode(400).end("Request is not correct.");
 		  }
 		  else{
+			  String base = pathCut[0];
+			  Request[] filter = requestToArray(pathCut);
 			  response.setStatusCode(200).end("Request: " + path);
 		  }
-//		  System.out.println(request.params().names());
-//		  for(String name : request.params().names()){
-//			  System.out.println(name + ": " + request.getParam(name));
-//		  }
 		  System.out.println("END PARAM");
+	  }
+	  
+	  private Request[] requestToArray(String[] request){
+		  Request[] result = new Request[request.length/2];
+		  int i;
+		  for(i = 1; i < request.length - 1; i = i+2){
+			  result[i/2] = new Request(request[i], request[i+1]);
+		  }
+		  return result;
 	  }
 
 
