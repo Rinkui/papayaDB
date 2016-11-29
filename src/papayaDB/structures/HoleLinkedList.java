@@ -33,7 +33,7 @@ public class HoleLinkedList {
 			if(link.size >= size-SIZE_DIFFERENCE && link.size <= size){
 				Link tmp = link;
 				link.previous.next = link.next;
-				return tmp.size;
+				return tmp.firstIndex;
 			}
 		}
 		return -1;

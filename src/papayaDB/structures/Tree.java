@@ -9,13 +9,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Tree {
 	static class Node {
-		final Request request;
+		final Tuple request;
 		List<Integer> answer; // Integer car on ne stockera que l'index de début
 								// de chaque objet
-		HashMap<Request, Node> linkedRequests; // on fait une hashmap pour
+		HashMap<Tuple, Node> linkedRequests; // on fait une hashmap pour
 												// trouver le request facilement
 
-		public Node(Request request, List<Integer> answer) {
+		public Node(Tuple request, List<Integer> answer) {
 			this.request = request;
 			this.answer = answer;
 		}
@@ -31,10 +31,10 @@ public class Tree {
 
 	public Tree() {
 		this.head = new Node(null, null); // la tête n'aura que des fils
-		this.head.linkedRequests = new HashMap<Request, Node>();
+		this.head.linkedRequests = new HashMap<Tuple, Node>();
 	}
 
-	public void add(List<Request> requestList) {
+	public void add(List<Tuple> requestList) {
 		lock.lock();
 		try {
 			Objects.requireNonNull(requestList);
@@ -49,11 +49,11 @@ public class Tree {
 		}
 	}
 
-	private Node addAtNode(List<Request> requestList, Node atThisNode) {
+	private Node addAtNode(List<Tuple> requestList, Node atThisNode) {
 		if (requestList.isEmpty())
 			return atThisNode;
 
-		Request currentReq = requestList.get(0);
+		Tuple currentReq = requestList.get(0);
 
 		// TODO calculer les valeurs à ajouter dans new ArrayList<Integer>()
 		atThisNode.linkedRequests.put(currentReq, new Node(requestList.get(0), new ArrayList<Integer>()));
@@ -62,12 +62,12 @@ public class Tree {
 		return addAtNode(requestList, atThisNode.linkedRequests.get(currentReq));
 	}
 
-	private Node containsRequest(List<Request> requestList, Node current) {
+	private Node containsRequest(List<Tuple> requestList, Node current) {
 		if (current.linkedRequests.isEmpty() && requestList.isEmpty())
 			return current;
 
 		Node resNode = null;
-		for (Request request : requestList) {
+		for (Tuple request : requestList) {
 			if (current.linkedRequests.containsKey(request)) {
 				requestList.remove(request);
 				resNode = containsRequest(requestList, current.linkedRequests.get(request));

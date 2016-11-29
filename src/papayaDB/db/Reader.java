@@ -2,7 +2,9 @@ package papayaDB.db;
 
 import java.nio.MappedByteBuffer;
 
+import jdk.internal.reflect.ReflectionFactory.GetReflectionFactoryAction;
 import papayaDB.structures.HoleLinkedList;
+import papayaDB.structures.Tuple;
 
 // gere les index
 // deux fichiers par type d'objet:
@@ -34,6 +36,7 @@ public class Reader {
 										// trouve dans le fichier de int)
 	private HoleLinkedList holeList;
 	private String type = null;
+	private int capacity;
 
 	public Reader(MappedByteBuffer map) {
 		this.map = map;
@@ -110,6 +113,7 @@ public class Reader {
 		return readFieldValue(objectIndex, fieldIndex);
 	}
 	
+	// les index fonctionnent selon les bytes, donc un int = 4 et un char = 2
 	private int getObjectsSize(int objectIndex){
 		map.position(objectIndex);
 		int size = map.getInt();
@@ -123,6 +127,11 @@ public class Reader {
 		}
 		return byteSize;
 	}
+	
+	// un champs est composé de sa longueur et de sa valeur
+	private int getFieldSize(String field){
+		return 4+2*field.length();
+	}
 
 	public void suppressObject(int objectIndex) {
 		if(holeList == null){
@@ -130,10 +139,34 @@ public class Reader {
 			return;
 		}
 		holeList.addHole(objectIndex, getObjectsSize(objectIndex));
+		if(objectIndex == capacity-fieldsNames.length)
+			capacity --;
 	}
 	
-	public void addObject(){
-		// sous quelle forme sera l'objet ???
+	private int getNewIndex(String[] objects, int size){
+		int firstIndex = holeList.removeHole(size);
+		if( firstIndex != -1 )
+			return firstIndex;
+		return objectsIndex[capacity++];
+	}
+	
+	private void fillObjectsIndex(String[] objects, int firstIndex){
+		
+	}
+	
+	public void addObject(String[] objects){
+		int size = 4;
+		StringBuilder sb = new StringBuilder(objects.length);
+		String val;
+		int length;
+		for(int i = 0 ; i < objects.length ; i ++){
+			val = objects[i]; 
+			length = val.length();
+			size += getFieldSize(objects[i]);
+			sb.append(length).append(val);
+		}
+		int firstIndex = getNewIndex(objects, size);
+		fillObjectsIndex(objects, firstIndex);
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon

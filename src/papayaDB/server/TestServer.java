@@ -11,7 +11,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
-import papayaDB.structures.Request;
+import papayaDB.structures.Tuple;
 
 public class TestServer extends AbstractVerticle{
 	@Override
@@ -41,18 +41,18 @@ public class TestServer extends AbstractVerticle{
 		}
 		else{
 			String base = pathCut[0];
-			Request[] filter = requestToArray(pathCut);
+			Tuple[] filter = requestToArray(pathCut);
 
 			response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + Arrays.toString(filter));
 		}
 		System.out.println("END PARAM");
 	}
 
-	private Request[] requestToArray(String[] request){
-		Request[] result = new Request[request.length/2];
+	private Tuple[] requestToArray(String[] request){
+		Tuple[] result = new Tuple[request.length/2];
 		int i;
 		for(i = 1; i < request.length - 1; i = i+2){
-			result[i/2] = new Request(request[i], request[i+1]);
+			result[i/2] = new Tuple(request[i], request[i+1]);
 		}
 		return result;
 	}
