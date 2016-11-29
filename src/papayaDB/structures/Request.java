@@ -39,4 +39,9 @@ public class Request implements Comparable<Request>{
 			return this.reqValue.compareTo(req2.reqValue);
 		return reqRes;
 	}
+	
+	@Override
+	public String toString() {
+		return "(" + req +  ";" + reqValue + ")";
+	}
 }
