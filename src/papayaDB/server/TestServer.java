@@ -12,11 +12,14 @@ import java.util.regex.Pattern;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.impl.Handlers;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import papayaDB.structures.Tuple;
 
 public class TestServer extends AbstractVerticle{
@@ -37,11 +40,6 @@ public class TestServer extends AbstractVerticle{
 		vertx.createHttpServer().requestHandler(router::accept).listen(8080);
 		System.out.println("listen on port 8080");
 	}
-	
-	private void post(RoutingContext routingContext){
-		HttpServerResponse response = routingContext.response();
-		HttpServerRequest request = routingContext.request();
-	}
 
 	//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]?filtre=ok
 	private void get(RoutingContext routingContext){
@@ -49,6 +47,30 @@ public class TestServer extends AbstractVerticle{
 	}
 	
 	private Runnable runnableForGet(RoutingContext routingContext){
+		return new Runnable() {
+			@Override
+			public void run() {
+				HttpServerResponse response = routingContext.response();
+				HttpServerRequest request = routingContext.request();
+				
+				request.dataHandle(new Handler<Buffer>() {
+
+					@Override
+					public void handle(Buffer arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+				});
+			}
+		};
+	}
+	
+	private void post(RoutingContext routingContext){
+		executor.execute(runnableForPost(routingContext));
+	}
+	
+	private Runnable runnableForPost(RoutingContext routingContext){
 		return new Runnable() {
 			@Override
 			public void run() {
@@ -65,7 +87,6 @@ public class TestServer extends AbstractVerticle{
 					List<Tuple<String, String>> filter = requestToArray(pathCut);
 					response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + filter);
 				}
-				System.out.println("END PARAM");
 			}
 		};
 	}
