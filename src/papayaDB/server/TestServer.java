@@ -50,7 +50,6 @@ public class TestServer extends AbstractVerticle{
 	
 	private Runnable runnableForGet(RoutingContext routingContext){
 		return new Runnable() {
-			
 			@Override
 			public void run() {
 				HttpServerResponse response = routingContext.response();
@@ -64,15 +63,6 @@ public class TestServer extends AbstractVerticle{
 				else{
 					String base = pathCut[0];
 					List<Tuple<String, String>> filter = requestToArray(pathCut);
-
-					//TODO send request to DB
-					if(base.equals("books")){
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
 					response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + filter);
 				}
 				System.out.println("END PARAM");
