@@ -1,6 +1,12 @@
 package papayaDB.server;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,12 +20,16 @@ import io.vertx.ext.web.handler.StaticHandler;
 import papayaDB.structures.Tuple;
 
 public class TestServer extends AbstractVerticle{
+	BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(100);
+	Executor executor = new ThreadPoolExecutor(10, 50, 10, TimeUnit.MINUTES, queue);
+	
 	@Override
 	public void start() {
 		Router router = Router.router(vertx);
 
 		// route to JSON REST APIs
 		router.get("/*").handler(this::get);
+		router.post("/*").handler(this::post);
 
 		// otherwise serve static pages
 		router.route().handler(StaticHandler.create());
@@ -27,32 +37,54 @@ public class TestServer extends AbstractVerticle{
 		vertx.createHttpServer().requestHandler(router::accept).listen(8080);
 		System.out.println("listen on port 8080");
 	}
+	
+	private void post(RoutingContext routingContext){
+		HttpServerResponse response = routingContext.response();
+		HttpServerRequest request = routingContext.request();
+	}
 
 	//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]?filtre=ok
 	private void get(RoutingContext routingContext){
-		HttpServerResponse response = routingContext.response();
-		HttpServerRequest request = routingContext.request();
-		
-		String[] pathCut = splitRequest(request.path());
-		System.out.println(Arrays.toString(pathCut));
-		
-		if(pathCut.length%2 == 0){
-			response.setStatusCode(400).end("Request is not correct.");
-		}
-		else{
-			String base = pathCut[0];
-			Tuple<String, String>[] filter = requestToArray(pathCut);
+		executor.execute(runnableForGet(routingContext));
+	}
+	
+	private Runnable runnableForGet(RoutingContext routingContext){
+		return new Runnable() {
+			
+			@Override
+			public void run() {
+				HttpServerResponse response = routingContext.response();
+				HttpServerRequest request = routingContext.request();
+				
+				String[] pathCut = splitRequest(request.path());
+				
+				if(pathCut.length%2 == 0){
+					response.setStatusCode(400).end("Request is not correct.");
+				}
+				else{
+					String base = pathCut[0];
+					List<Tuple<String, String>> filter = requestToArray(pathCut);
 
-			response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + Arrays.toString(filter));
-		}
-		System.out.println("END PARAM");
+					//TODO send request to DB
+					if(base.equals("books")){
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+					response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + filter);
+				}
+				System.out.println("END PARAM");
+			}
+		};
 	}
 
-	private Tuple<String, String>[] requestToArray(String[] request){
-		Tuple<String, String>[] result = new Tuple[request.length/2];
+	private List<Tuple<String, String>> requestToArray(String[] request){
+		List<Tuple<String, String>> result = new ArrayList<>(request.length/2);
 		int i;
 		for(i = 1; i < request.length - 1; i = i+2){
-			result[i/2] = new Tuple<String, String>(request[i], request[i+1]);
+			result.add(i/2, new Tuple<String, String>(request[i], request[i+1]));
 		}
 		return result;
 	}
