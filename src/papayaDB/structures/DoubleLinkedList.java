@@ -1,6 +1,6 @@
 package papayaDB.structures;
 
-public class HoleLinkedList {
+public class DoubleLinkedList {
 	private class Link{
 		final int firstIndex;
 		final int size;
@@ -17,8 +17,9 @@ public class HoleLinkedList {
 	private static final int SIZE_DIFFERENCE = 5; // la difference de size
 	// autorisée pour combler un
 	// trou
+	private int size;
 	
-	public HoleLinkedList(int firstIndex, int size) {
+	public DoubleLinkedList(int firstIndex, int size) {
 		head = new Link(firstIndex, size);
 	}	
 	
@@ -26,6 +27,7 @@ public class HoleLinkedList {
 		Link newHead = new Link(firstIndex, size);
 		newHead.next = head;
 		head = newHead;
+		size ++;
 	}
 	
 	public int removeHole(int size){
@@ -33,9 +35,14 @@ public class HoleLinkedList {
 			if(link.size >= size-SIZE_DIFFERENCE && link.size <= size){
 				Link tmp = link;
 				link.previous.next = link.next;
+				size --;
 				return tmp.firstIndex;
 			}
 		}
 		return -1;
+	}
+	
+	public int getSize() {
+		return size;
 	}
 }

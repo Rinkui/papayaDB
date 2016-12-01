@@ -1,47 +1,40 @@
 package papayaDB.structures;
 
-public class Tuple implements Comparable<Tuple>{
-	private final String req;
-	private final String reqValue;
+public class Tuple<T, V> {
+	private final T req;
+	private final V reqValue;
 
-	public Tuple(String req, String reqValue) {
+	public Tuple(T req, V reqValue) {
 		this.req = req;
 		this.reqValue = reqValue;
 	}
 
-	public String getReq() {
+	public T getReq() {
 		return req;
 	}
 
-	public String getReqValue() {
+	public V getReqValue() {
 		return reqValue;
 	}
 
 	@Override
 	public int hashCode() {
-		return req.hashCode()^reqValue.hashCode();
+		return req.hashCode() ^ reqValue.hashCode();
 	}
 
+	@SuppressWarnings("unchecked") // on est sur que obj est un tuple
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == null)
 			return false;
 		if (!(obj instanceof Tuple))
 			return false;
-		Tuple request = (Tuple) obj;
+		Tuple<T, V> request = (Tuple<T, V>) obj;
 		return req.equals(request.req) && reqValue.equals(request.reqValue);
 	}
 
 	@Override
-	public int compareTo(Tuple req2) {
-		int reqRes = this.req.compareTo(req2.req);
-		if( reqRes == 0)
-			return this.reqValue.compareTo(req2.reqValue);
-		return reqRes;
-	}
-	
-	@Override
 	public String toString() {
-		return "(" + req +  ";" + reqValue + ")";
+		return "(" + req + ";" + reqValue + ")";
 	}
 }

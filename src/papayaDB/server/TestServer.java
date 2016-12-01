@@ -41,18 +41,18 @@ public class TestServer extends AbstractVerticle{
 		}
 		else{
 			String base = pathCut[0];
-			Tuple[] filter = requestToArray(pathCut);
+			Tuple<String, String>[] filter = requestToArray(pathCut);
 
 			response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + Arrays.toString(filter));
 		}
 		System.out.println("END PARAM");
 	}
 
-	private Tuple[] requestToArray(String[] request){
-		Tuple[] result = new Tuple[request.length/2];
+	private Tuple<String, String>[] requestToArray(String[] request){
+		Tuple<String, String>[] result = new Tuple[request.length/2];
 		int i;
 		for(i = 1; i < request.length - 1; i = i+2){
-			result[i/2] = new Tuple(request[i], request[i+1]);
+			result[i/2] = new Tuple<String, String>(request[i], request[i+1]);
 		}
 		return result;
 	}

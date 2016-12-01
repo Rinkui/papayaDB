@@ -1,9 +1,8 @@
 package papayaDB.db;
 
 import java.nio.MappedByteBuffer;
-
-import jdk.internal.reflect.ReflectionFactory.GetReflectionFactoryAction;
-import papayaDB.structures.HoleLinkedList;
+import java.util.ArrayList;
+import papayaDB.structures.DoubleLinkedList;
 import papayaDB.structures.Tuple;
 
 // gere les index
@@ -34,7 +33,9 @@ public class Reader {
 	private String[] fieldsNames = null; // indexs des champs
 	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on
 										// trouve dans le fichier de int)
-	private HoleLinkedList holeList;
+	private DoubleLinkedList holeList;
+	private ArrayList<Tuple<Integer, String[]>> addList; // string a écrire dans
+															// le fichier
 	private String type = null;
 	private int capacity;
 
@@ -112,13 +113,13 @@ public class Reader {
 			throw new IllegalArgumentException("Field name doesn't exist");
 		return readFieldValue(objectIndex, fieldIndex);
 	}
-	
+
 	// les index fonctionnent selon les bytes, donc un int = 4 et un char = 2
-	private int getObjectsSize(int objectIndex){
+	private int getObjectsSize(int objectIndex) {
 		map.position(objectIndex);
 		int size = map.getInt();
 		int byteSize = 4, nbChar;
-		for(int i = 0 ; i < size ; i ++){
+		for (int i = 0; i < size; i++) {
 			nbChar = map.getInt();
 			byteSize += 4;
 			for (int j = 0; j < nbChar; j++) {
@@ -127,46 +128,58 @@ public class Reader {
 		}
 		return byteSize;
 	}
-	
+
 	// un champs est composé de sa longueur et de sa valeur
-	private int getFieldSize(String field){
-		return 4+2*field.length();
+	private int getFieldSize(String field) {
+		return 4 + 2 * field.length();
 	}
 
 	public void suppressObject(int objectIndex) {
-		if(holeList == null){
-			new HoleLinkedList(objectIndex, getObjectsSize(objectIndex));
+		if (holeList == null) {
+			new DoubleLinkedList(objectIndex, getObjectsSize(objectIndex));
 			return;
 		}
 		holeList.addHole(objectIndex, getObjectsSize(objectIndex));
-		if(objectIndex == capacity-fieldsNames.length)
-			capacity --;
+		if (objectIndex == capacity - fieldsNames.length)
+			capacity--;
 	}
-	
-	private int getNewIndex(String[] objects, int size){
+
+	private int getNewIndex(String[] objects, int size) {
 		int firstIndex = holeList.removeHole(size);
-		if( firstIndex != -1 )
+		if (firstIndex != -1)
 			return firstIndex;
-		return objectsIndex[capacity++];
+		firstIndex = capacity + 1;
+		capacity = capacity + objects.length;
+		return firstIndex;
 	}
-	
-	private void fillObjectsIndex(String[] objects, int firstIndex){
-		
-	}
-	
-	public void addObject(String[] objects){
-		int size = 4;
-		StringBuilder sb = new StringBuilder(objects.length);
-		String val;
-		int length;
-		for(int i = 0 ; i < objects.length ; i ++){
-			val = objects[i]; 
-			length = val.length();
-			size += getFieldSize(objects[i]);
-			sb.append(length).append(val);
+
+	private void fillObjectsIndex(int[] valuesSize, int firstIndex) {
+		for (int i = firstIndex, j = 0; i < firstIndex + valuesSize.length - 1; i++, j++) {
+			// on additionne l'index précédent avec la taille du champs suivant
+			objectsIndex[i + 1] = objectsIndex[i] + valuesSize[j];
 		}
-		int firstIndex = getNewIndex(objects, size);
-		fillObjectsIndex(objects, firstIndex);
+	}
+
+	private void addToAddList(int size, String[] object) {
+		if (addList == null)
+			addList = new ArrayList<Tuple<Integer, String[]>>();
+		addList.add(new Tuple<Integer, String[]>(size, object));
+	}
+
+	public int addObject(String[] object) {
+		int size = 4; // premier int donne le nombre de champs
+		int valuesSize[] = new int[object.length];
+		int fieldSize;
+		for (int i = 0; i < object.length; i++) {
+			fieldSize = getFieldSize(object[i]);
+			// on met directement les octets avec le int et la String
+			valuesSize[i] = fieldSize;
+			size += fieldSize;
+		}
+		addToAddList(size, object);
+		int firstIndex = getNewIndex(object, size);
+		fillObjectsIndex(valuesSize, firstIndex);
+		return firstIndex;
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
