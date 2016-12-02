@@ -1,8 +1,11 @@
 package papayaDB.structures;
 
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -144,8 +147,26 @@ public class Tree {
 		return sb.toString();
 	}
 	
-	public void writeTreeInFile(Path file){
-		String tree = treeToString("NULL", head);
-		Files.write(file, tree, Charset.forName("UTF-8"));
+	public void writeTreeInFile(File file) throws IOException{
+		String tree = treeToString("", head);
+		BufferedWriter out = new BufferedWriter(new FileWriter(file));
+		out.write(tree);
+		out.close();
+	}
+	
+	public static Tree readTreeInFile(File file) throws IOException{
+		Tree tree = new Tree();
+		FileInputStream fis = new FileInputStream(file);
+		int c;
+		String parent;
+		
+		while((char)( c = fis.read()) != ';'){}
+		
+		while((c = fis.read()) != -1 ){
+			
+			// faire le traitement
+		}
+		fis.close();
+		return tree;
 	}
 }
