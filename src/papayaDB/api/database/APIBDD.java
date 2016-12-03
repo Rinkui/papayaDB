@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.ext.web.RoutingContext;
 import papayaDB.api.Api;
 import papayaDB.db.DataBase;
 
@@ -42,10 +43,46 @@ public class APIBDD implements Api {
 
 	}
 
-	@Override
+	
 	public void start() {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public void createDb(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void deleteDb(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void get(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void getAll(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void post(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void delete(RoutingContext routingContext) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
