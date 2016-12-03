@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -20,10 +21,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
-import papayaDB.api.AbstractApi;
+import papayaDB.api.Api;
 import papayaDB.structures.Tuple;
 
-public class ServerApi extends AbstractApi{
+public class ServerApi extends AbstractVerticle implements Api{
 	BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(100);
 	Executor executor = new ThreadPoolExecutor(10, 50, 10, TimeUnit.MINUTES, queue);
 	
@@ -36,7 +37,7 @@ public class ServerApi extends AbstractApi{
 		router.delete("/:dbName/confirm").handler(routingContext -> executor.execute(runnableForDeleteDb(routingContext)));
 
 		//For Element
-		//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]
+		//http://localhost:8080/books/name/"abc /def"/year/[2010;2015]/price/[;30]
 		router.get("/:dbName/all").handler(routingContext -> executor.execute(runnableForGetAll(routingContext)));
 		router.get("/:dbName/*").handler(routingContext -> executor.execute(runnableForGet(routingContext)));
 		router.post("/:dbName").handler(routingContext -> executor.execute(runnableForPost(routingContext)));

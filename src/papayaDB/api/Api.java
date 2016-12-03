@@ -3,10 +3,9 @@ package papayaDB.api;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.vertx.core.Verticle;
 import papayaDB.structures.Tuple;
 
-public interface Api extends Verticle{
+public interface Api{
 	
 	public boolean createDb(String dbName);
 	
