@@ -1,17 +1,14 @@
 package papayaDB.db;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import papayaDB.structures.DoubleLinkedList;
+import papayaDB.structures.Link;
 import papayaDB.structures.Tuple;
 
 // gere les index
@@ -47,7 +44,7 @@ public class Reader {
 	private ArrayList<Tuple<Integer, String[]>> addList; // string a écrire dans
 	// le fichier
 	private String type = null;
-	private int capacity;
+	private int indexTableCapacity;
 
 	public Reader(MappedByteBuffer map, RandomAccessFile file) {
 		this.map = map;
@@ -62,7 +59,6 @@ public class Reader {
 			sb.append(map.getChar());
 		}
 		type = sb.toString();
-		System.out.println(type);
 	}
 
 	private void firstFieldsReading() {
@@ -95,7 +91,7 @@ public class Reader {
 				map.getChar();
 			}
 		}
-		capacity = nbObjects * nbFields;
+		indexTableCapacity = nbObjects * nbFields;
 	}
 
 	private int getFieldIndex(String fieldName) {
@@ -108,8 +104,8 @@ public class Reader {
 		return -1;
 	}
 
-	private String readFieldValue(int objectIndex, int fieldIndex) {
-		map.position(objectsIndex[objectIndex + fieldIndex]);
+	private String readFieldValue(int objectTableIndex, int fieldIndex) {
+		map.position(objectsIndex[objectTableIndex + fieldIndex]);
 		int size = map.getInt();
 		if (size == 0)
 			return "";
@@ -120,18 +116,18 @@ public class Reader {
 		return sb.toString();
 	}
 
-	public String getFieldValue(int objectIndex, String fieldName) {
+	public String getFieldValue(int objectTableIndex, String fieldName) {
 		if (objectsIndex == null)
 			firstObjectsReading(fieldName.length());
 		int fieldIndex;
 		if ((fieldIndex = getFieldIndex(fieldName)) == -1)
 			throw new IllegalArgumentException("Field name doesn't exist");
-		return readFieldValue(objectIndex, fieldIndex);
+		return readFieldValue(objectTableIndex, fieldIndex);
 	}
 
 	// les index fonctionnent selon les bytes, donc un int = 4 et un char = 2
-	private int getObjectsSize(int objectIndex) {
-		map.position(objectIndex);
+	private int getObjectsSize(int objectTableIndex) {
+		map.position(objectsIndex[objectTableIndex]);
 		int size = map.getInt();
 		int byteSize = 4, nbChar;
 		for (int i = 0; i < size; i++) {
@@ -149,25 +145,23 @@ public class Reader {
 		return 4 + 2 * field.length();
 	}
 
-	public void suppressObject(int objectIndex) {
+	public void suppressObject(int objectTableIndex) {
 		if (holeList == null) {
-			new DoubleLinkedList(objectIndex, getObjectsSize(objectIndex));
+			new DoubleLinkedList(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
 			return;
 		}
-		holeList.addHole(objectIndex, getObjectsSize(objectIndex));
-		if (objectIndex == capacity - fieldsNames.length)
-			capacity--;
+		holeList.addHole(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
+		if (objectTableIndex == indexTableCapacity - fieldsNames.length)
+			indexTableCapacity--;
 	}
 
-	private int getNewIndex(String[] objects, int size) {
-		int firstIndex = -1;
-		if( holeList != null)
-			firstIndex = holeList.removeHole(size);
-		if (firstIndex != -1)
-			return firstIndex;
-		firstIndex = capacity + 1;
-		capacity = capacity + objects.length;
-		return firstIndex;
+	private Link getNewIndex(String[] objects, int size) {
+		Link link = null;
+		if (holeList != null)
+			link = holeList.removeHole(size);
+		if (link != null)
+			return link;
+		return new Link(objectsIndex[indexTableCapacity], indexTableCapacity++, size);
 	}
 
 	private void fillObjectsIndex(int[] valuesSize, int firstIndex) {
@@ -193,10 +187,10 @@ public class Reader {
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
-		int firstIndex = getNewIndex(object, size);
-		addToAddList(firstIndex, object);
-		fillObjectsIndex(valuesSize, firstIndex);
-		return firstIndex;
+		Link link = getNewIndex(object, size);
+		addToAddList(link.getMapIndex(), object);
+		fillObjectsIndex(valuesSize, link.getTableIndex());
+		return link.getTableIndex();
 	}
 
 	private void resizeMap() throws IOException {
@@ -212,7 +206,6 @@ public class Reader {
 				resizeMap();
 			map.position(pos);
 			String[] haveToWrite = tuple.getValue();
-			map.putInt(haveToWrite.length);
 			for (String s : haveToWrite) {
 				map.putInt(s.length());
 				for (int i = 0; i < s.length(); i++) {
@@ -247,22 +240,59 @@ public class Reader {
 			}
 			i++;
 		}
-	}
-	
-	private void calculateCapacity(){
-		int cap = 4 + 2* type.length();
-		for(String field : fieldsNames){
-			cap += 4 + 2*field.length();
-		}
-		capacity = cap;
+		objectsIndex[0] = map.position();
 	}
 
 	public void writeTypeAndFields(String type, List<String> fields) {
 		this.type = type;
+		objectsIndex = new int[map.limit() / fields.size()];
 		writeType(type);
 		writeFields(fields);
-		calculateCapacity();
-		objectsIndex = new int[map.limit()/fields.size()];
+		indexTableCapacity = 0;
+	}
+
+	public boolean fieldEqualTo(int object, String field, String fieldValue) {
+		int fieldIndex = getFieldIndex(field);
+		map.position(objectsIndex[object + fieldIndex]);
+		int size = map.getInt();
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < size; i++) {
+			sb.append(map.getChar());
+		}
+		return fieldValue.equals(sb.toString());
+	}
+
+	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
+		String fieldValue = getFieldValue(object, field).toLowerCase();
+		bornInf = bornInf.toLowerCase();
+		bornSupp = bornSupp.toLowerCase();
+		if (bornInf.isEmpty()) {
+			if (bornSupp.charAt(0) <= '9' && bornSupp.charAt(0) >= '0') {
+				int fieldValueInt = Integer.parseInt(fieldValue);
+				int supp = Integer.parseInt(bornSupp);
+				return fieldValueInt <= supp;
+			}
+			return fieldValue.compareTo(bornSupp) < 0 ? true : false;
+		}
+
+		if (bornSupp.isEmpty()) {
+			if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0') {
+				int fieldValueInt = Integer.parseInt(fieldValue);
+				int inf = Integer.parseInt(bornInf);
+				return fieldValueInt >= inf;
+			}
+			return fieldValue.compareTo(bornInf) > 0 ? true : false;
+		}
+
+		// else
+		if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0' && bornSupp.charAt(0) <= '9'
+				&& bornSupp.charAt(0) >= '0') {
+			int fieldValueInt = Integer.parseInt(fieldValue);
+			int inf = Integer.parseInt(bornInf);
+			int supp = Integer.parseInt(bornSupp);
+			return fieldValueInt >= inf && fieldValueInt <= supp;
+		}
+		return fieldValue.compareTo(bornInf) > 0 && fieldValue.compareTo(bornSupp) < 0 ? true : false;
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
