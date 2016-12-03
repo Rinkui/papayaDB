@@ -1,7 +1,15 @@
 package papayaDB.db;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 
 import papayaDB.structures.DoubleLinkedList;
 import papayaDB.structures.Tuple;
@@ -28,6 +36,7 @@ public class Reader {
 	// laisser pour l'ajout d'objets
 
 	private MappedByteBuffer map;
+	private final RandomAccessFile file;
 
 	// pour les deux tableaux on retient l'index de la taille du champs
 	// à changer : on stocke le nom des champs
@@ -40,18 +49,20 @@ public class Reader {
 	private String type = null;
 	private int capacity;
 
-	public Reader(MappedByteBuffer map) {
+	public Reader(MappedByteBuffer map, RandomAccessFile file) {
 		this.map = map;
+		this.file = file;
 	}
 
 	private void firstTypeReading() {
-		char c;
 		StringBuilder sb = new StringBuilder();
 		map.position(0);
-		while ((c = map.getChar()) != '\n') {
-			sb.append(c);
+		int typeSize = map.getInt();
+		for (int i = 0; i < typeSize; i++) {
+			sb.append(map.getChar());
 		}
 		type = sb.toString();
+		System.out.println(type);
 	}
 
 	private void firstFieldsReading() {
@@ -88,6 +99,8 @@ public class Reader {
 	}
 
 	private int getFieldIndex(String fieldName) {
+		if (fieldsNames == null)
+			firstFieldsReading();
 		for (int i = 0; i < fieldsNames.length; i++) {
 			if (fieldName.equals(fieldsNames[i]))
 				return i;
@@ -147,7 +160,9 @@ public class Reader {
 	}
 
 	private int getNewIndex(String[] objects, int size) {
-		int firstIndex = holeList.removeHole(size);
+		int firstIndex = -1;
+		if( holeList != null)
+			firstIndex = holeList.removeHole(size);
 		if (firstIndex != -1)
 			return firstIndex;
 		firstIndex = capacity + 1;
@@ -178,15 +193,23 @@ public class Reader {
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
-		addToAddList(size, object);
 		int firstIndex = getNewIndex(object, size);
+		addToAddList(firstIndex, object);
 		fillObjectsIndex(valuesSize, firstIndex);
 		return firstIndex;
 	}
 
-	public void write() {
+	private void resizeMap() throws IOException {
+		int newlenght = map.limit() * 2;
+		file.setLength(newlenght);
+		map = file.getChannel().map(MapMode.READ_WRITE, 0, newlenght);
+	}
+
+	public void writeAddedObjects() throws IOException {
 		for (Tuple<Integer, String[]> tuple : addList) {
 			int pos = tuple.getKey();
+			if (pos > map.limit())
+				resizeMap();
 			map.position(pos);
 			String[] haveToWrite = tuple.getValue();
 			map.putInt(haveToWrite.length);
@@ -197,7 +220,49 @@ public class Reader {
 				}
 			}
 		}
-		
+	}
+
+	public String getType() {
+		if (type == null)
+			firstTypeReading();
+		return type;
+	}
+
+	private void writeType(String type) {
+		map.position(0);
+		map.putInt(type.length());
+		for (int i = 0; i < type.length(); i++) {
+			map.putChar(type.charAt(i));
+		}
+	}
+
+	private void writeFields(List<String> fields) {
+		int i = 0;
+		fieldsNames = new String[fields.size()];
+		for (String field : fields) {
+			fieldsNames[i] = field;
+			map.putInt(field.length());
+			for (int j = 0; j < field.length(); j++) {
+				map.putChar(field.charAt(j));
+			}
+			i++;
+		}
+	}
+	
+	private void calculateCapacity(){
+		int cap = 4 + 2* type.length();
+		for(String field : fieldsNames){
+			cap += 4 + 2*field.length();
+		}
+		capacity = cap;
+	}
+
+	public void writeTypeAndFields(String type, List<String> fields) {
+		this.type = type;
+		writeType(type);
+		writeFields(fields);
+		calculateCapacity();
+		objectsIndex = new int[map.limit()/fields.size()];
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
