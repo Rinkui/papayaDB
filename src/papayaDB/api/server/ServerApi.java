@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.vertx.core.AbstractVerticle;
@@ -89,7 +91,8 @@ public class ServerApi extends AbstractVerticle implements Api{
 				else{
 					String base = request.getParam("dbName");
 					List<Tuple<String, String>> filter = requestToList(pathCut);
-					response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + filter);
+					response.setStatusCode(200).end(get(base, filter).map(jsonObject -> jsonObject.encode()).collect(Collectors.joining(",", "[", "]")));
+					//response.setStatusCode(200).end("Request: \n\tBase: " + base + "\n\tFilter: " + filter);
 				}
 			}
 		};
@@ -101,8 +104,10 @@ public class ServerApi extends AbstractVerticle implements Api{
 			@Override
 			public void run() {
 				HttpServerResponse response = routingContext.response();
-				System.out.println("Do getAll");
-				response.setStatusCode(200).end("TODO getAll");
+				HttpServerRequest request = routingContext.request();
+				System.out.println(request.path());
+				String base = request.getParam("dbName");
+				response.setStatusCode(200).end(getAll(base).map(jsonObject -> jsonObject.encode()).collect(Collectors.joining(",", "[", "]")));
 			}
 		};
 	}
@@ -163,7 +168,12 @@ public class ServerApi extends AbstractVerticle implements Api{
 		}
 		return result;
 	}
-
+	
+	private JsonObject listToJson(List<Tuple<String, String>> list){
+		JsonObject o = new JsonObject();
+		list.forEach(tuple -> o.put(tuple.getKey(), tuple.getValue()));
+		return o;
+	}
 
 	@Override
 	public boolean createDb(String dbName) {
@@ -178,15 +188,19 @@ public class ServerApi extends AbstractVerticle implements Api{
 	}
 
 	@Override
-	public Stream<Object> get(String dbName, List<Tuple<String, String>> filter) {
-		// TODO Auto-generated method stub
-		return null;
+	public Stream<JsonObject> get(String dbName, List<Tuple<String, String>> filter) {
+		return IntStream.range(0, 50).mapToObj(i -> listToJson(test(i)));
+	}
+	
+	private List<Tuple<String, String>> test(int i){
+		ArrayList<Tuple<String, String>> result = new ArrayList<>(1);
+		result.add(new Tuple<String, String>("id", String.valueOf(i)));
+		return result;
 	}
 
 	@Override
-	public Stream<Object> getAll(String dbName) {
-		// TODO Auto-generated method stub
-		return null;
+	public Stream<JsonObject> getAll(String dbName) {
+		return IntStream.range(0, 50).mapToObj(i -> listToJson(test(i)));
 	}
 
 	@Override

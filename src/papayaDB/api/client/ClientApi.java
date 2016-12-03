@@ -9,6 +9,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.JsonObject;
 import papayaDB.api.Api;
 import papayaDB.structures.Tuple;
 
@@ -42,14 +43,27 @@ public class ClientApi implements Api{
 	}
 
 	@Override
-	public Stream<Object> get(String dbName, List<Tuple<String, String>> filter) {
+	public Stream<JsonObject> get(String dbName, List<Tuple<String, String>> filter) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Stream<Object> getAll(String dbName) {
-		// TODO Auto-generated method stub
+	public Stream<JsonObject> getAll(String dbName) {
+		httpclient.get("/" + dbName + "/all", new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(HttpClientResponse response) {
+				response.handler(new Handler<Buffer>() {
+					@Override
+					public void handle(Buffer b) {
+						System.out.println(b.toString());
+						JsonObject json = new JsonObject(b.toString());
+						System.out.println("After new");
+						System.out.println(json.encodePrettily());
+					}
+				});
+			}
+		}).end();
 		return null;
 	}
 
@@ -80,7 +94,7 @@ public class ClientApi implements Api{
 //		filter.add(new Tuple<>("name", "abc /def"));
 //		filter.add(new Tuple<>("year", "[2010;2015]"));
 //		filter.add(new Tuple<>("price", "[;30]"));
-		ca.createDb("books");
+		ca.getAll("books");
 	}
 	
 }

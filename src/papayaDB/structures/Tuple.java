@@ -35,6 +35,6 @@ public class Tuple<T, V>{
 
 	@Override
 	public String toString() {
-		return "(" + req + ";" + reqValue + ")";
+		return "\"" + req + "\"=" + reqValue;
 	}
 }
