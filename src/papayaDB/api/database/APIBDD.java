@@ -13,7 +13,7 @@ import io.vertx.core.Vertx;
 import papayaDB.api.Api;
 import papayaDB.db.DataBase;
 
-public class APIBDD implements Api{
+public class APIBDD implements Api {
 	private ConcurrentHashMap<String, DataBase> dataBasePool = new ConcurrentHashMap();
 	BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(100);
 	Executor executor = new ThreadPoolExecutor(10, 50, 10, TimeUnit.MINUTES, queue);
@@ -27,26 +27,25 @@ public class APIBDD implements Api{
 	@Override
 	public void init(Vertx arg0, Context arg1) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void start(Future<Void> arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void stop(Future<Void> arg0) throws Exception {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void start() {
 		// TODO Auto-generated method stub
-		
+
 	}
-	
-	
+
 }
