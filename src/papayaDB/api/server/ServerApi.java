@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -20,9 +19,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
+import papayaDB.api.AbstractApi;
 import papayaDB.structures.Tuple;
 
-public class TestServer extends AbstractVerticle{
+public class ServerApi extends AbstractApi{
 	BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(100);
 	Executor executor = new ThreadPoolExecutor(10, 50, 10, TimeUnit.MINUTES, queue);
 	
@@ -47,28 +47,28 @@ public class TestServer extends AbstractVerticle{
 		System.out.println("listen on port 8080");
 	}
 	
-	private void createDb(RoutingContext routingContext){
+	public void createDb(RoutingContext routingContext){
 		executor.execute(runnableForCreateDb(routingContext));
 	}
 	
-	private void deleteDb(RoutingContext routingContext){
+	public void deleteDb(RoutingContext routingContext){
 		executor.execute(runnableForDeleteDb(routingContext));
 	}
 
 	//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]?filtre=ok
-	private void get(RoutingContext routingContext){
+	public void get(RoutingContext routingContext){
 		executor.execute(runnableForGet(routingContext));
 	}
 	
-	private void getAll(RoutingContext routingContext){
+	public void getAll(RoutingContext routingContext){
 		executor.execute(runnableForGetAll(routingContext));
 	}
 
-	private void post(RoutingContext routingContext){
+	public void post(RoutingContext routingContext){
 		executor.execute(runnableForPost(routingContext));
 	}
 	
-	private void delete(RoutingContext routingContext) {
+	public void delete(RoutingContext routingContext) {
 		executor.execute(runnableForDelete(routingContext));
 	}
 
@@ -194,6 +194,6 @@ public class TestServer extends AbstractVerticle{
 		//System.setProperty("vertx.disableFileCaching", "true");
 
 		Vertx vertx = Vertx.vertx();
-		vertx.deployVerticle(new TestServer());
+		vertx.deployVerticle(new ServerApi());
 	}
 }
