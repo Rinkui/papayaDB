@@ -60,9 +60,9 @@ public class Tree {
 			Comparator<Tuple<String, String>> comp = new Comparator<Tuple<String, String>>() {
 				@Override
 				public int compare(Tuple<String, String> t1, Tuple<String, String> t2) {
-					int reqRes = t1.getReq().compareTo(t2.getReq());
+					int reqRes = t1.getKey().compareTo(t2.getKey());
 					if( reqRes == 0)
-						return t1.getReqValue().compareTo(t2.getReqValue());
+						return t1.getValue().compareTo(t2.getValue());
 					return reqRes;
 				}
 			};

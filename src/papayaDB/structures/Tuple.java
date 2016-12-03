@@ -1,6 +1,6 @@
 package papayaDB.structures;
 
-public class Tuple<T, V> {
+public class Tuple<T, V>{
 	private final T req;
 	private final V reqValue;
 
@@ -9,11 +9,11 @@ public class Tuple<T, V> {
 		this.reqValue = reqValue;
 	}
 
-	public T getReq() {
+	public T getKey() {
 		return req;
 	}
 
-	public V getReqValue() {
+	public V getValue() {
 		return reqValue;
 	}
 
