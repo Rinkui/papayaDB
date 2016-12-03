@@ -1,19 +1,22 @@
 package papayaDB.api;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 import io.vertx.core.Verticle;
-import io.vertx.ext.web.RoutingContext;
+import papayaDB.structures.Tuple;
 
 public interface Api extends Verticle{
 	
-	public void createDb(RoutingContext routingContext);
+	public boolean createDb(String dbName);
 	
-	public void deleteDb(RoutingContext routingContext);
+	public boolean deleteDb(String dbName);
 
-	public void get(RoutingContext routingContext);
+	public Stream<Object> get(String dbName, List<Tuple<String,String>> filter);
 	
-	public void getAll(RoutingContext routingContext);
+	public Stream<Object> getAll(String dbName);
 
-	public void post(RoutingContext routingContext);
+	public boolean post(String dbName, List<Tuple<String, String>> fields);
 	
-	public void delete(RoutingContext routingContext);
+	public boolean delete(String dbName, int id);
 }

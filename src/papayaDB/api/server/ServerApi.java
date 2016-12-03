@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -31,45 +32,21 @@ public class ServerApi extends AbstractApi{
 		Router router = Router.router(vertx);
 		
 		//For DB
-		router.post("/:dbNAme").handler(this::createDb);
-		router.delete("/:dbName/confirm").handler(this::deleteDb);
+		router.post("/:dbNAme").handler(routingContext -> executor.execute(runnableForCreateDb(routingContext)));
+		router.delete("/:dbName/confirm").handler(routingContext -> executor.execute(runnableForDeleteDb(routingContext)));
 
 		//For Element
-		router.get("/:dbName/all").handler(this::getAll);
-		router.get("/:dbName/*").handler(this::get);
-		router.post("/:dbName").handler(this::post);
-		router.delete("/:dbName/:id").handler(this::delete);
+		//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]
+		router.get("/:dbName/all").handler(routingContext -> executor.execute(runnableForGetAll(routingContext)));
+		router.get("/:dbName/*").handler(routingContext -> executor.execute(runnableForGet(routingContext)));
+		router.post("/:dbName").handler(routingContext -> executor.execute(runnableForPost(routingContext)));
+		router.delete("/:dbName/:id").handler(routingContext -> executor.execute(runnableForDelete(routingContext)));
 
 		// otherwise serve static pages
 		router.route().handler(StaticHandler.create());
 
 		vertx.createHttpServer().requestHandler(router::accept).listen(8080);
 		System.out.println("listen on port 8080");
-	}
-	
-	public void createDb(RoutingContext routingContext){
-		executor.execute(runnableForCreateDb(routingContext));
-	}
-	
-	public void deleteDb(RoutingContext routingContext){
-		executor.execute(runnableForDeleteDb(routingContext));
-	}
-
-	//http://localhost:8080/books/name/%22abc%20/def%22/year/[2010;2015]/price/[;30]?filtre=ok
-	public void get(RoutingContext routingContext){
-		executor.execute(runnableForGet(routingContext));
-	}
-	
-	public void getAll(RoutingContext routingContext){
-		executor.execute(runnableForGetAll(routingContext));
-	}
-
-	public void post(RoutingContext routingContext){
-		executor.execute(runnableForPost(routingContext));
-	}
-	
-	public void delete(RoutingContext routingContext) {
-		executor.execute(runnableForDelete(routingContext));
 	}
 
 	private Runnable runnableForCreateDb(RoutingContext routingContext) {
@@ -187,12 +164,48 @@ public class ServerApi extends AbstractApi{
 	}
 
 
+	@Override
+	public boolean createDb(String dbName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteDb(String dbName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Stream<Object> get(String dbName, List<Tuple<String, String>> filter) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Stream<Object> getAll(String dbName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean post(String dbName, List<Tuple<String, String>> fields) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean delete(String dbName, int id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 	public static void main(String[] args) {
 		// development option, avoid caching to see changes of
 		// static files without having to reload the application,
 		// obviously, this line should be commented in production
 		//System.setProperty("vertx.disableFileCaching", "true");
-
+	
 		Vertx vertx = Vertx.vertx();
 		vertx.deployVerticle(new ServerApi());
 	}
