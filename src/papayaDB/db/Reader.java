@@ -2,8 +2,6 @@ package papayaDB.db;
 
 import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import papayaDB.structures.DoubleLinkedList;
 import papayaDB.structures.Tuple;
@@ -37,11 +35,10 @@ public class Reader {
 	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on
 										// trouve dans le fichier de int)
 	private DoubleLinkedList holeList;
-	private HashMap<Integer, String[]> addList; // string a écrire dans
-												// le fichier
+	private ArrayList<Tuple<Integer, String[]>> addList; // string a écrire dans
+	// le fichier
 	private String type = null;
 	private int capacity;
-	private int writingIndex;
 
 	public Reader(MappedByteBuffer map) {
 		this.map = map;
@@ -88,7 +85,6 @@ public class Reader {
 			}
 		}
 		capacity = nbObjects * nbFields;
-		writingIndex = capacity;
 	}
 
 	private int getFieldIndex(String fieldName) {
@@ -168,8 +164,8 @@ public class Reader {
 
 	private void addToAddList(int size, String[] object) {
 		if (addList == null)
-			addList = new HashMap<Integer, String[]>();
-		addList.put(size, object);
+			addList = new ArrayList<Tuple<Integer, String[]>>();
+		addList.add(new Tuple<Integer, String[]>(size, object));
 	}
 
 	public int addObject(String[] object) {
@@ -189,10 +185,10 @@ public class Reader {
 	}
 
 	public void write() {
-		for (Map.Entry<Integer, String[]> entry : addList.entrySet()) {
-			int pos = entry.getKey();
+		for (Tuple<Integer, String[]> tuple : addList) {
+			int pos = tuple.getKey();
 			map.position(pos);
-			String[] haveToWrite = entry.getValue();
+			String[] haveToWrite = tuple.getValue();
 			map.putInt(haveToWrite.length);
 			for (String s : haveToWrite) {
 				map.putInt(s.length());
@@ -201,6 +197,7 @@ public class Reader {
 				}
 			}
 		}
+		
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
