@@ -1,5 +1,6 @@
 package papayaDB.db;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
@@ -293,6 +294,10 @@ public class Reader {
 			return fieldValueInt >= inf && fieldValueInt <= supp;
 		}
 		return fieldValue.compareTo(bornInf) > 0 && fieldValue.compareTo(bornSupp) < 0 ? true : false;
+	}
+	
+	public void readHoles(File holes){
+		
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
