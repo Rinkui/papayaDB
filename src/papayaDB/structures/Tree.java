@@ -20,8 +20,9 @@ public class Tree {
 		final Tuple<String, String> request;
 		List<Integer> answer; // Integer car on ne stockera que l'index de début
 								// de chaque objet
-		HashMap<Tuple<String, String>, Node> linkedRequests; // on fait une hashmap pour
-												// trouver le request facilement
+		HashMap<Tuple<String, String>, Node> linkedRequests; // on fait une
+																// hashmap pour
+		// trouver le request facilement
 
 		public Node(Tuple<String, String> request, List<Integer> answer) {
 			this.request = request;
@@ -32,16 +33,42 @@ public class Tree {
 			Objects.requireNonNull(node);
 			linkedRequests.put(node.request, node);
 		}
-		
+
 		@Override
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			sb.append(request).append("[");
-			for(Integer i : answer)
-				sb.append(i).append(",");
-			sb.setLength(sb.length()-1);
-			sb.append("]");
-			return sb.toString();
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((answer == null) ? 0 : answer.hashCode());
+			result = prime * result + ((linkedRequests == null) ? 0 : linkedRequests.hashCode());
+			result = prime * result + ((request == null) ? 0 : request.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Node other = (Node) obj;
+			if (answer == null) {
+				if (other.answer != null)
+					return false;
+			} else if (!answer.equals(other.answer))
+				return false;
+			if (linkedRequests == null) {
+				if (other.linkedRequests != null)
+					return false;
+			} else if (!linkedRequests.equals(other.linkedRequests))
+				return false;
+			if (request == null) {
+				if (other.request != null)
+					return false;
+			} else if (!request.equals(other.request))
+				return false;
+			return true;
 		}
 	}
 
@@ -53,79 +80,50 @@ public class Tree {
 		this.head.linkedRequests = new HashMap<Tuple<String, String>, Node>();
 	}
 
-	public void add(List<Tuple<String, String>> requestList) {
-		Objects.requireNonNull(requestList);
+	public List<Integer> get(List<Tuple<String, String>> requestList) {
 		lock.lock();
 		try {
-			Comparator<Tuple<String, String>> comp = new Comparator<Tuple<String, String>>() {
-				@Override
-				public int compare(Tuple<String, String> t1, Tuple<String, String> t2) {
-					int reqRes = t1.getKey().compareTo(t2.getKey());
-					if( reqRes == 0)
-						return t1.getValue().compareTo(t2.getValue());
-					return reqRes;
-				}
-			};
-			Collections.sort(requestList, comp);
-			Node isPresent = containsRequest(requestList, head);
-
-			if (!requestList.isEmpty()) {
-				addAtNode(requestList, isPresent);
-			}
+			Node node = containsRequest(requestList, head);
+			if (node == null || node == head)
+				return null;
+			return node.answer;
 		} finally {
 			lock.unlock();
 		}
-	}
-
-	private Node addAtNode(List<Tuple<String, String>> requestList, Node atThisNode) {
-		if (requestList.isEmpty())
-			return atThisNode;
-
-		Tuple<String, String> currentReq = requestList.get(0);
-
-		// TODO calculer les valeurs à ajouter dans new ArrayList<Integer>()
-		atThisNode.linkedRequests.put(currentReq, new Node(requestList.get(0), new ArrayList<Integer>()));
-
-		requestList.remove(0);
-		return addAtNode(requestList, atThisNode.linkedRequests.get(currentReq));
 	}
 
 	private Node containsRequest(List<Tuple<String, String>> requestList, Node current) {
-		if (current.linkedRequests.isEmpty() && requestList.isEmpty())
+		if (requestList.isEmpty())
 			return current;
 
-		Node resNode = null;
-		for (Tuple<String, String> request : requestList) {
+		List<Tuple<String, String>> copy = requestList;
+		for (Tuple<String, String> request : copy) {
 			if (current.linkedRequests.containsKey(request)) {
 				requestList.remove(request);
-				resNode = containsRequest(requestList, current.linkedRequests.get(request));
+				return containsRequest(requestList, current.linkedRequests.get(request));
 			}
 		}
 
-		if (resNode != null)
-			return resNode;
-
-		return current;
+		return null;
+	}
+	
+	private void addRec(List<Tuple<Tuple<String,String>, List<Integer>>> requestAndValues, int index, Node current){
+		if( index >= requestAndValues.size() )
+			return;
+		
+		Tuple<Tuple<String,String>, List<Integer>> thisRAV = requestAndValues.get(index);
+		
+		if( current.linkedRequests.containsKey(thisRAV.getKey()) ){
+			addRec(requestAndValues, index+1, current.linkedRequests.get(thisRAV));
+			return;
+		}
+		
+		current.linkedRequests.put(thisRAV.getKey(), new Node(thisRAV.getKey(), thisRAV.getValue()));
+		addRec(requestAndValues, index+1, current.linkedRequests.get(thisRAV));
 	}
 
-	private boolean containsRec(Integer id, Node current) {
-		if (current == null)
-			return false;
-		if (current.answer.contains(id))
-			return true;
-		for (Node node : current.linkedRequests.values()) {
-			containsRec(id, node);
-		}
-		return false;
-	}
-
-	public boolean contains(Integer id) {
-		lock.lock();
-		try {
-			return containsRec(id, head);
-		} finally {
-			lock.unlock();
-		}
+	public void add(List<Tuple<Tuple<String,String>, List<Integer>>> requestAndValues) {
+		addRec(requestAndValues, 0, head);
 	}
 
 	public void addId(Integer id) {
@@ -136,34 +134,35 @@ public class Tree {
 	public void remvoveId(Integer id) {
 		// enlève un objet de l'arbre
 	}
-	
-	private String treeToString(String father, Node currentNode){
-		if( currentNode.linkedRequests == null )
+
+	private String treeToString(String father, Node currentNode) {
+		if (currentNode.linkedRequests == null)
 			return "";
 		StringBuilder sb = new StringBuilder(father).append(":").append(currentNode);
-		for( Map.Entry<Tuple<String, String>, Node> e : currentNode.linkedRequests.entrySet() ){
+		for (Map.Entry<Tuple<String, String>, Node> e : currentNode.linkedRequests.entrySet()) {
 			sb.append(treeToString(currentNode.request.toString(), e.getValue()));
 		}
 		return sb.toString();
 	}
-	
-	public void writeTreeInFile(File file) throws IOException{
+
+	public void writeTreeInFile(File file) throws IOException {
 		String tree = treeToString("", head);
 		BufferedWriter out = new BufferedWriter(new FileWriter(file));
 		out.write(tree);
 		out.close();
 	}
-	
-	public static Tree readTreeInFile(File file) throws IOException{
+
+	public static Tree readTreeInFile(File file) throws IOException {
 		Tree tree = new Tree();
 		FileInputStream fis = new FileInputStream(file);
 		int c;
 		String parent;
-		
-		while((char)( c = fis.read()) != ';'){}
-		
-		while((c = fis.read()) != -1 ){
-			
+
+		while ((char) (c = fis.read()) != ';') {
+		}
+
+		while ((c = fis.read()) != -1) {
+
 			// faire le traitement
 		}
 		fis.close();

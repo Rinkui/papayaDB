@@ -1,11 +1,15 @@
 package papayaDB.db;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -152,12 +156,15 @@ public class Reader {
 		return 4 + 2 * field.length();
 	}
 
-	public void suppressObject(int objectTableIndex) {
+	public boolean suppressObject(int objectTableIndex) {
+		if(objectTableIndex < 0 || objectTableIndex > indexTableCapacity-fieldsNames.length)
+			return false;
 		lock.lock();
 		try {
 			holeList.addHole(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
 			if (objectTableIndex == indexTableCapacity - fieldsNames.length)
 				indexTableCapacity -= fieldsNames.length;
+			return true;
 		} finally {
 			lock.unlock();
 		}
@@ -280,8 +287,33 @@ public class Reader {
 			lock.unlock();
 		}
 	}
+	
+	public List<Integer> getObjectsRequested(List<Integer> set, Tuple<String, String> request){
+		ArrayList<Integer> list = new ArrayList<>();
+		if( set.isEmpty() ){
+			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
+				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
+					list.add(i);
+			}
+		}
+		else {
+			for(Integer i : set ){
+				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
+					list.add(i);
+			}
+		}
+		return list;
+	}
+	
+	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
+		if (fieldValue.charAt(0) == '[') {
+			String[] borns = fieldValue.substring(1, fieldValue.length() - 1).split(";");
+			return fieldInfOrSupp(object, field, borns[0], borns[1]);
+		}
+		return fieldEqualTo(object, field, fieldValue);
+	}
 
-	public boolean fieldEqualTo(int object, String field, String fieldValue) {
+	private boolean fieldEqualTo(int object, String field, String fieldValue) {
 		int fieldIndex = getFieldIndex(field);
 		lock.lock();
 		try {
@@ -296,6 +328,7 @@ public class Reader {
 			lock.unlock();
 		}
 	}
+
 
 	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
 		String fieldValue;
