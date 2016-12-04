@@ -8,7 +8,7 @@ import papayaDB.structures.Tuple;
 
 public interface Api{
 
-	public boolean createDb(String dbName, List<Tuple<String, String>> fields);
+	public boolean createDb(String dbName, List<String> fields);
 	
 	public boolean deleteDb(String dbName);
 

@@ -19,6 +19,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -59,7 +60,8 @@ public class ServerApi extends AbstractVerticle implements Api{
 				HttpServerResponse response = routingContext.response();
 				HttpServerRequest request = routingContext.request();
 				String base = request.getParam("dbName");
-				response.setStatusCode(200).end(String.valueOf(createDb(base, null)));
+				JsonArray ja = new JsonArray(request.getParam("fields"));
+				response.setStatusCode(200).end(String.valueOf(createDb(base, ja.getList())));
 			}
 		};
 	}
@@ -190,7 +192,7 @@ public class ServerApi extends AbstractVerticle implements Api{
 	}
 	
 	@Override
-	public boolean createDb(String dbName, List<Tuple<String, String>> fields) {
+	public boolean createDb(String dbName, List<String> fields) {
 		// TODO Auto-generated method stub
 		return false;
 	}

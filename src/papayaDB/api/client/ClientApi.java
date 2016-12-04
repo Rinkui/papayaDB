@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.core.Future;
 import papayaDB.api.Api;
@@ -26,8 +27,8 @@ public class ClientApi implements Api{
 	}
 
 	@Override
-	public boolean createDb(String dbName, List<Tuple<String, String>> fields) {
-		Future<Boolean> future = postProcess("/" + dbName + "/create", listToJson(fields));
+	public boolean createDb(String dbName, List<String> fields) {
+		Future<Boolean> future = postProcess("/" + dbName + "/create", fieldsToJson(fields));
 		lock.lock();
 		try{
 			while(!future.isComplete()){
@@ -93,7 +94,7 @@ public class ClientApi implements Api{
 	
 	@Override
 	public boolean post(String dbName, List<Tuple<String, String>> fields) {
-		Future<Boolean> future = postProcess("/" + dbName, listToJson(fields));
+		Future<Boolean> future = postProcess("/" + dbName, listToJsonObject(fields));
 		lock.lock();
 		try{
 			while(!future.isComplete()){
@@ -106,6 +107,14 @@ public class ClientApi implements Api{
 		}
 		return future.result();
 	}
+
+	private JsonObject listToJsonObject(List<Tuple<String, String>> fields) {
+		JsonObject o = new JsonObject();
+		fields.forEach(tuple -> o.put(tuple.getKey(), tuple.getValue()));
+		return o;
+	}
+	
+	
 
 	@Override
 	public boolean delete(String dbName, int id) {
@@ -163,9 +172,10 @@ public class ClientApi implements Api{
 		return future;
 	}
 	
-	private JsonObject listToJson(List<Tuple<String, String>> list){
+	private JsonObject fieldsToJson(List<String> list){
 		JsonObject o = new JsonObject();
-		list.forEach(tuple -> o.put(tuple.getKey(), tuple.getValue()));
+		JsonArray array = new JsonArray(list);
+		list.forEach(tuple -> o.put("fields", array));
 		return o;
 	}
 	
