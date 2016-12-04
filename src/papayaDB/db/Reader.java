@@ -369,6 +369,7 @@ public class Reader {
 		try {
 			if (!holeList.containsKey(object)) {
 				ArrayList<Tuple<String, String>> oneObject = new ArrayList<>();
+				oneObject.add(new Tuple<String, String>("id", String.valueOf(object)));
 				for (int j = 0; j < fieldsNames.length; j++) {
 					String fieldName = fieldsNames[j];
 					String fieldValue = getFieldValue(object, fieldName);

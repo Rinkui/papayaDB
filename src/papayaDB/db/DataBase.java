@@ -108,17 +108,22 @@ public class DataBase {
 		});
 		List<Integer> values = tree.get(requests);
 		if(values == null ){
-			new Thread(()->{
-				List<Tuple<Tuple<String,String>, List<Integer>>> finalList = new ArrayList<>();
-				List<Integer> set = new ArrayList<>();
-				for(Tuple<String, String> req : requests){
-					set = reader.getObjectsRequested(set, req);
-					finalList.add(new Tuple<Tuple<String,String>, List<Integer>>(req, set));
-				}				
+			List<Tuple<Tuple<String,String>, List<Integer>>> finalList = new ArrayList<>();
+			List<Integer> set = new ArrayList<>();
+			for(Tuple<String, String> req : requests){
+				set = reader.getObjectsRequested(set, req);
+				finalList.add(new Tuple<Tuple<String,String>, List<Integer>>(req, set));
+			}	
+			new Thread(()->{			
 				tree.add(finalList);
-			});
+			}).start();
+			values = finalList.get(finalList.size()-1).getValue();
 		}
-		return null;
+		List<List<Tuple<String, String>>> result = new ArrayList<>();
+		for(Integer i : values){
+			result.add(reader.getObject(i));
+		}
+		return result;
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -138,16 +143,19 @@ public class DataBase {
 		
 		db.writeAddedObjects();
 		
+		System.out.println("Index 1");
 		System.out.println(db.fieldCompareToValue(index, "price", "12"));
 		System.out.println(db.fieldCompareToValue(index, "price", "[;40]"));
 		System.out.println(db.fieldCompareToValue(index, "price", "40"));
 		System.out.println(db.fieldCompareToValue(index, "author", "[a;z]"));
 		
+		System.out.println("\nIndex 2");
 		System.out.println(db.fieldCompareToValue(index2, "price", "12"));
 		System.out.println(db.fieldCompareToValue(index2, "price", "[;40]"));
 		System.out.println(db.fieldCompareToValue(index2, "price", "40"));
 		System.out.println(db.fieldCompareToValue(index2, "author", "[a;z]"));
 		
+		System.out.println("\nGetAll");
 		System.out.println(db.getAll());
 		
 //		db.reader.suppressObject(index2);
@@ -156,8 +164,9 @@ public class DataBase {
 	
 		
 		List<Tuple<String, String>> requests = new ArrayList<>();
-		requests.add(new Tuple<String, String>("price", "12"));
+		requests.add(new Tuple<String, String>("price", "[;100]"));
 		List<List<Tuple<String,String>>> resultForServer = db.get(requests);
+		System.out.println("\nResult for server");
 		System.out.println(resultForServer);
 	}
 }
