@@ -283,8 +283,33 @@ public class Reader {
 			lock.unlock();
 		}
 	}
+	
+	public List<Integer> getObjectsRequested(List<Integer> set, Tuple<String, String> request){
+		ArrayList<Integer> list = new ArrayList<>();
+		if( set.isEmpty() ){
+			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
+				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
+					list.add(i);
+			}
+		}
+		else {
+			for(Integer i : set ){
+				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
+					list.add(i);
+			}
+		}
+		return list;
+	}
+	
+	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
+		if (fieldValue.charAt(0) == '[') {
+			String[] borns = fieldValue.substring(1, fieldValue.length() - 1).split(";");
+			return fieldInfOrSupp(object, field, borns[0], borns[1]);
+		}
+		return fieldEqualTo(object, field, fieldValue);
+	}
 
-	public boolean fieldEqualTo(int object, String field, String fieldValue) {
+	private boolean fieldEqualTo(int object, String field, String fieldValue) {
 		int fieldIndex = getFieldIndex(field);
 		lock.lock();
 		try {
@@ -300,7 +325,7 @@ public class Reader {
 		}
 	}
 
-	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
+	private boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
 		lock.lock();
 		try {
 			String fieldValue = getFieldValue(object, field).toLowerCase();

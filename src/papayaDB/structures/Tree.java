@@ -84,7 +84,7 @@ public class Tree {
 		lock.lock();
 		try {
 			Node node = containsRequest(requestList, head);
-			if (node == head)
+			if (node == null || node == head)
 				return null;
 			return node.answer;
 		} finally {
@@ -104,7 +104,7 @@ public class Tree {
 			}
 		}
 
-		return current;
+		return null;
 	}
 	
 	private void addRec(List<Tuple<Tuple<String,String>, List<Integer>>> requestAndValues, int index, Node current){

@@ -7,6 +7,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import papayaDB.structures.Tree;
@@ -84,11 +85,7 @@ public class DataBase {
 	}
 
 	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
-		if (fieldValue.charAt(0) == '[') {
-			String[] borns = fieldValue.substring(1, fieldValue.length() - 1).split(";");
-			return reader.fieldInfOrSupp(object, field, borns[0], borns[1]);
-		}
-		return reader.fieldEqualTo(object, field, fieldValue);
+		return reader.fieldCompareToValue(object, field, fieldValue);
 	}
 	
 	public List<List<Tuple<String,String>>> getAll(){
@@ -97,6 +94,31 @@ public class DataBase {
 	
 	public boolean remove(int object){
 		return reader.suppressObject(object);
+	}
+	
+	public List<List<Tuple<String,String>>> get(List<Tuple<String,String>> requests){
+		requests.sort(new Comparator<Tuple<String,String>>() {
+			@Override
+			public int compare(Tuple<String, String> t1, Tuple<String, String> t2) {
+				int reqRes = t1.getKey().compareTo(t2.getKey());
+				if(reqRes == 0)
+					return t1.getValue().compareTo(t2.getValue());
+				return reqRes;
+			}
+		});
+		List<Integer> values = tree.get(requests);
+		if(values == null ){
+			new Thread(()->{
+				List<Tuple<Tuple<String,String>, List<Integer>>> finalList = new ArrayList<>();
+				List<Integer> set = new ArrayList<>();
+				for(Tuple<String, String> req : requests){
+					set = reader.getObjectsRequested(set, req);
+					finalList.add(new Tuple<Tuple<String,String>, List<Integer>>(req, set));
+				}				
+				tree.add(finalList);
+			});
+		}
+		return null;
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -128,8 +150,14 @@ public class DataBase {
 		
 		System.out.println(db.getAll());
 		
-		db.reader.suppressObject(index2);
+//		db.reader.suppressObject(index2);
+//		
+//		System.out.println(db.getAll());
+	
 		
-		System.out.println(db.getAll());
+		List<Tuple<String, String>> requests = new ArrayList<>();
+		requests.add(new Tuple<String, String>("price", "12"));
+		List<List<Tuple<String,String>>> resultForServer = db.get(requests);
+		System.out.println(resultForServer);
 	}
 }
