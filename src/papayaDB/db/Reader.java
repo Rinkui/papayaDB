@@ -159,7 +159,7 @@ public class Reader {
 	}
 
 	public boolean suppressObject(int objectTableIndex) {
-		if(objectTableIndex < 0 || objectTableIndex > indexTableCapacity-fieldsNames.length)
+		if (objectTableIndex < 0 || objectTableIndex > indexTableCapacity - fieldsNames.length)
 			return false;
 		lock.lock();
 		try {
@@ -195,10 +195,10 @@ public class Reader {
 			addList = new ArrayList<Tuple<Integer, String[]>>();
 		addList.add(new Tuple<Integer, String[]>(size, object));
 	}
-	
-	private String[] objectToArray(List<Tuple<String, String>> object){
+
+	private String[] objectToArray(List<Tuple<String, String>> object) {
 		String[] modifedObj = new String[fieldsNames.length];
-		for(Tuple<String,String> tuple : object){
+		for (Tuple<String, String> tuple : object) {
 			modifedObj[getFieldIndex(tuple.getKey())] = tuple.getValue();
 		}
 		return modifedObj;
@@ -298,24 +298,28 @@ public class Reader {
 			lock.unlock();
 		}
 	}
-	
-	public List<Integer> getObjectsRequested(List<Integer> set, Tuple<String, String> request){
+
+	public List<Integer> getObjectsRequested(List<Integer> set, Tuple<String, String> request) {
 		ArrayList<Integer> list = new ArrayList<>();
-		if( set.isEmpty() ){
-			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
-				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
-					list.add(i);
+		lock.lock();
+		try {
+			if (set.isEmpty()) {
+				for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
+					if (fieldCompareToValue(i, request.getKey(), request.getValue()))
+						list.add(i);
+				}
+			} else {
+				for (Integer i : set) {
+					if (fieldCompareToValue(i, request.getKey(), request.getValue()))
+						list.add(i);
+				}
 			}
+			return list;
+		} finally {
+			lock.unlock();
 		}
-		else {
-			for(Integer i : set ){
-				if( fieldCompareToValue(i, request.getKey(), request.getValue()) )
-					list.add(i);
-			}
-		}
-		return list;
 	}
-	
+
 	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
 		if (fieldValue.charAt(0) == '[') {
 			String[] borns = fieldValue.substring(1, fieldValue.length() - 1).split(";");
@@ -339,7 +343,6 @@ public class Reader {
 			lock.unlock();
 		}
 	}
-
 
 	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
 		String fieldValue;
@@ -412,33 +415,43 @@ public class Reader {
 	}
 
 	public void readHoles() throws IOException {
-		long size = Files.size(holeFile.toPath());
-		if(size == 0){
-			return;
+		lock.lock();
+		try {
+			long size = Files.size(holeFile.toPath());
+			if (size == 0) {
+				return;
+			}
+			FileInputStream in = new FileInputStream(holeFile);
+			FileChannel fc = in.getChannel();
+			MappedByteBuffer map = fc.map(MapMode.READ_WRITE, 0, fc.size());
+			while (map.remaining() >= (Integer.BYTES * 3)) {
+				this.holeList.addHole(map.getInt(), map.getInt(), map.getInt());
+			}
+			in.close();
+		} finally {
+			lock.unlock();
 		}
-		FileInputStream in = new FileInputStream(holeFile);
-		FileChannel fc = in.getChannel();
-		MappedByteBuffer map = fc.map(MapMode.READ_WRITE, 0, fc.size());
-		while(map.remaining() >= (Integer.BYTES * 3)){
-			this.holeList.addHole(map.getInt(), map.getInt(), map.getInt());
-		}
-		in.close();
 	}
-	
+
 	public void writeHoles() throws IOException {
-		RandomAccessFile raf = new RandomAccessFile(holeFile, "rw");
-		int lenght = this.holeList.size();
-		raf.setLength(lenght * 3 * Integer.BYTES);
-		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght);
-		Iterator<Integer> iterator = holeList.getIterator();
-		while(iterator.hasNext()){
-			int value = iterator.next();
-			map.putInt(value);
-			Tuple<Integer, Integer> tuple = holeList.get(value);
-			map.putInt(tuple.getKey());
-			map.putInt(tuple.getValue());
+		lock.lock();
+		try {
+			RandomAccessFile raf = new RandomAccessFile(holeFile, "rw");
+			int lenght = this.holeList.size();
+			raf.setLength(lenght * 3 * Integer.BYTES);
+			MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght);
+			Iterator<Integer> iterator = holeList.getIterator();
+			while (iterator.hasNext()) {
+				int value = iterator.next();
+				map.putInt(value);
+				Tuple<Integer, Integer> tuple = holeList.get(value);
+				map.putInt(tuple.getKey());
+				map.putInt(tuple.getValue());
+			}
+			raf.close();
+		} finally {
+			lock.unlock();
 		}
-		raf.close();
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon

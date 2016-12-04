@@ -125,10 +125,19 @@ public class Tree {
 	public void add(List<Tuple<Tuple<String,String>, List<Integer>>> requestAndValues) {
 		addRec(requestAndValues, 0, head);
 	}
+	
+	private void addIdRec(Node currentNode){
+		if (currentNode.linkedRequests == null)
+			return;
+		for (Map.Entry<Tuple<String, String>, Node> e : currentNode.linkedRequests.entrySet()) {
+			
+		}
+	}
 
 	public void addId(Integer id) {
 		// lorsque l'utilisateur ajoute un quelque chose dans la bdd on doit
 		// vérifier toutes les requests pour voir si elles conviennent ?
+		
 	}
 
 	public void remvoveId(Integer id) {
