@@ -7,8 +7,8 @@ import io.vertx.core.json.JsonObject;
 import papayaDB.structures.Tuple;
 
 public interface Api{
-	
-	public boolean createDb(String dbName);
+
+	public boolean createDb(String dbName, List<Tuple<String, String>> fields);
 	
 	public boolean deleteDb(String dbName);
 

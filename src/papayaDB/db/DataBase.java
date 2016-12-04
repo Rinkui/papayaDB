@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,6 +19,24 @@ public class DataBase {
 	private Reader reader;
 
 	public DataBase(String type) throws IOException {
+		//File tree, dataBase, holes;
+		String path = "DataBases/" + type;
+		
+		if(exist(type)){
+			//tree = new File(path + "/tree");
+			//dataBase = new File(path + "/dataBase");
+			//holes = new File(path + "/holes");
+			initReader(new File(path + "/dataBase"));
+			this.tree = Tree.readTreeInFile(new File(path + "/tree")); //tree
+			reader.readHoles(new File(path + "/holes")); //holes
+		} else {
+			createFileIfNeeded(type);
+			initReader(new File(path + "/dataBase"));
+			this.tree = new Tree();
+		}
+		
+		
+		
 		Path dataBasesDirectoryPath = Paths.get("DataBases");
 		File dataBasesDirectory = dataBasesDirectoryPath.toFile();
 		File[] files = dataBasesDirectory.listFiles();
@@ -64,7 +83,47 @@ public class DataBase {
 			this.tree = new Tree();
 		}
 	}
+	
+	private boolean exist(String type){
+		if(!Paths.get("DataBases").toFile().exists()){ return false; }
+		String path = "DataBases/" + type;
+		if(!Paths.get(path).toFile().exists()){ return false; }
+		if(!Paths.get(path + "/tree").toFile().exists()|| 
+				!Paths.get(path + "/dataBase").toFile().exists() ||
+				!Paths.get(path + "/holes").toFile().exists()){ 
+			return false;
+		}
+		return true;
+	}
+	
+	private void createFileIfNeeded(String type) throws IOException{
+		if(!Paths.get("DataBases").toFile().exists()){ 
+			if(!new File("DataBases").mkdir()){
+				throw new IllegalStateException("DataBases directory can't be created");
+			}
+		}
+		String path = "DataBases/" + type;
+		if(!Paths.get(path).toFile().exists()){
+			if(!new File(path).mkdir()){
+				throw new IllegalStateException("DataBase directory can't be created");
+			}
+		}
+		if(!Paths.get(path + "/tree").toFile().exists() || !Paths.get(path + "/dataBase").toFile().exists() || !Paths.get(path + "/holes").toFile().exists()){
+			File tree = new File(path + "/tree");
+			File dataBase = new File(path + "/dataBase");
+			File holes = new File(path + "/holes");
+			if( !(tree.createNewFile() && dataBase.createNewFile() && holes.createNewFile()) )
+				throw new IllegalStateException("One of DataBases settings file can't be created");
+		}
+	}
 
+	private void initReader(File dataBase) throws IOException{
+		RandomAccessFile raf = new RandomAccessFile(dataBase, "rw");
+		int size = raf.length() > 0 ? (int) raf.length() * 2 : 4096;
+		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, size);		
+		this.reader = new Reader(map, raf);
+	}
+	
 	public DataBase(String type, List<String> fields) throws IOException {
 		this(type);
 		reader.writeTypeAndFields(type, fields);
