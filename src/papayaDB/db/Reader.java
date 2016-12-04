@@ -7,8 +7,9 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
-import papayaDB.structures.DoubleLinkedList;
+import papayaDB.structures.HoleList;
 import papayaDB.structures.Link;
 import papayaDB.structures.Tuple;
 
@@ -33,6 +34,8 @@ public class Reader {
 	private static final int MARGIN = 100; // la marge que l'on choisi de
 	// laisser pour l'ajout d'objets
 
+	private final ReentrantLock lock = new ReentrantLock();
+
 	private MappedByteBuffer map;
 	private final RandomAccessFile file;
 
@@ -41,7 +44,7 @@ public class Reader {
 	private String[] fieldsNames = null; // indexs des champs
 	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on
 										// trouve dans le fichier de int)
-	private DoubleLinkedList holeList;
+	private HoleList holeList = new HoleList();
 	private ArrayList<Tuple<Integer, String[]>> addList; // string a écrire dans
 	// le fichier
 	private String type = null;
@@ -60,6 +63,7 @@ public class Reader {
 			sb.append(map.getChar());
 		}
 		type = sb.toString();
+
 	}
 
 	private void firstFieldsReading() {
@@ -80,6 +84,7 @@ public class Reader {
 	}
 
 	private void firstObjectsReading(int nbFields) {
+
 		if (fieldsNames == null)
 			firstFieldsReading();
 		int nbObjects = map.getInt();
@@ -93,6 +98,7 @@ public class Reader {
 			}
 		}
 		indexTableCapacity = nbObjects * nbFields;
+
 	}
 
 	private int getFieldIndex(String fieldName) {
@@ -118,27 +124,27 @@ public class Reader {
 	}
 
 	public String getFieldValue(int objectTableIndex, String fieldName) {
-		if (objectsIndex == null)
-			firstObjectsReading(fieldName.length());
-		int fieldIndex;
-		if ((fieldIndex = getFieldIndex(fieldName)) == -1)
-			throw new IllegalArgumentException("Field name doesn't exist");
-		return readFieldValue(objectTableIndex, fieldIndex);
+		lock.lock();
+		try {
+			if (objectsIndex == null)
+				firstObjectsReading(fieldName.length());
+			int fieldIndex;
+			if ((fieldIndex = getFieldIndex(fieldName)) == -1)
+				throw new IllegalArgumentException("Field name doesn't exist");
+			return readFieldValue(objectTableIndex, fieldIndex);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	// les index fonctionnent selon les bytes, donc un int = 4 et un char = 2
 	private int getObjectsSize(int objectTableIndex) {
-		map.position(objectsIndex[objectTableIndex]);
-		int size = map.getInt();
-		int byteSize = 4, nbChar;
-		for (int i = 0; i < size; i++) {
-			nbChar = map.getInt();
-			byteSize += 4;
-			for (int j = 0; j < nbChar; j++) {
-				byteSize += 2;
-			}
+		int size = 0;
+		for (int i = objectTableIndex; i < objectTableIndex + fieldsNames.length; i++) {
+			map.position(objectsIndex[i]);
+			size += map.getInt() * 2 + 4;
 		}
-		return byteSize;
+		return size;
 	}
 
 	// un champs est composé de sa longueur et de sa valeur
@@ -147,26 +153,29 @@ public class Reader {
 	}
 
 	public void suppressObject(int objectTableIndex) {
-		if (holeList == null) {
-			new DoubleLinkedList(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
-			return;
+		lock.lock();
+		try {
+			holeList.addHole(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
+			if (objectTableIndex == indexTableCapacity - fieldsNames.length)
+				indexTableCapacity -= fieldsNames.length;
+		} finally {
+			lock.unlock();
 		}
-		holeList.addHole(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
-		if (objectTableIndex == indexTableCapacity - fieldsNames.length)
-			indexTableCapacity--;
 	}
 
 	private Link getNewIndex(String[] objects, int size) {
 		Link link = null;
-		if (holeList != null)
+		if (!holeList.isEmpty())
 			link = holeList.removeHole(size);
 		if (link != null)
 			return link;
-		return new Link(objectsIndex[indexTableCapacity], indexTableCapacity++, size);
+		int tmpIndexTable = indexTableCapacity;
+		indexTableCapacity += fieldsNames.length;
+		return new Link(objectsIndex[tmpIndexTable], tmpIndexTable, size);
 	}
 
 	private void fillObjectsIndex(int[] valuesSize, int firstIndex) {
-		for (int i = firstIndex, j = 0; i < firstIndex + valuesSize.length - 1; i++, j++) {
+		for (int i = firstIndex, j = 0; i < firstIndex + valuesSize.length; i++, j++) {
 			// on additionne l'index précédent avec la taille du champs suivant
 			objectsIndex[i + 1] = objectsIndex[i] + valuesSize[j];
 		}
@@ -188,10 +197,15 @@ public class Reader {
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
-		Link link = getNewIndex(object, size);
-		addToAddList(link.getMapIndex(), object);
-		fillObjectsIndex(valuesSize, link.getTableIndex());
-		return link.getTableIndex();
+		lock.lock();
+		try {
+			Link link = getNewIndex(object, size);
+			addToAddList(link.getMapIndex(), object);
+			fillObjectsIndex(valuesSize, link.getTableIndex());
+			return link.getTableIndex();
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	private void resizeMap() throws IOException {
@@ -201,25 +215,35 @@ public class Reader {
 	}
 
 	public void writeAddedObjects() throws IOException {
-		for (Tuple<Integer, String[]> tuple : addList) {
-			int pos = tuple.getKey();
-			if (pos > map.limit())
-				resizeMap();
-			map.position(pos);
-			String[] haveToWrite = tuple.getValue();
-			for (String s : haveToWrite) {
-				map.putInt(s.length());
-				for (int i = 0; i < s.length(); i++) {
-					map.putChar(s.charAt(i));
+		lock.lock();
+		try {
+			for (Tuple<Integer, String[]> tuple : addList) {
+				int pos = tuple.getKey();
+				if (pos > map.limit())
+					resizeMap();
+				map.position(pos);
+				String[] haveToWrite = tuple.getValue();
+				for (String s : haveToWrite) {
+					map.putInt(s.length());
+					for (int i = 0; i < s.length(); i++) {
+						map.putChar(s.charAt(i));
+					}
 				}
 			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
 	public String getType() {
-		if (type == null)
-			firstTypeReading();
-		return type;
+		lock.lock();
+		try {
+			if (type == null)
+				firstTypeReading();
+			return type;
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	private void writeType(String type) {
@@ -245,59 +269,108 @@ public class Reader {
 	}
 
 	public void writeTypeAndFields(String type, List<String> fields) {
-		this.type = type;
-		objectsIndex = new int[map.limit() / fields.size()];
-		writeType(type);
-		writeFields(fields);
-		indexTableCapacity = 0;
+		lock.lock();
+		try {
+			this.type = type;
+			objectsIndex = new int[map.limit() / fields.size()];
+			writeType(type);
+			writeFields(fields);
+			indexTableCapacity = 0;
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	public boolean fieldEqualTo(int object, String field, String fieldValue) {
 		int fieldIndex = getFieldIndex(field);
-		map.position(objectsIndex[object + fieldIndex]);
-		int size = map.getInt();
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < size; i++) {
-			sb.append(map.getChar());
+		lock.lock();
+		try {
+			map.position(objectsIndex[object + fieldIndex]);
+			int size = map.getInt();
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < size; i++) {
+				sb.append(map.getChar());
+			}
+			return fieldValue.equals(sb.toString());
+		} finally {
+			lock.unlock();
 		}
-		return fieldValue.equals(sb.toString());
 	}
 
 	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
-		String fieldValue = getFieldValue(object, field).toLowerCase();
-		bornInf = bornInf.toLowerCase();
-		bornSupp = bornSupp.toLowerCase();
-		if (bornInf.isEmpty()) {
-			if (bornSupp.charAt(0) <= '9' && bornSupp.charAt(0) >= '0') {
-				int fieldValueInt = Integer.parseInt(fieldValue);
-				int supp = Integer.parseInt(bornSupp);
-				return fieldValueInt <= supp;
-			}
-			return fieldValue.compareTo(bornSupp) < 0 ? true : false;
-		}
+		lock.lock();
+		try {
+			String fieldValue = getFieldValue(object, field).toLowerCase();
 
-		if (bornSupp.isEmpty()) {
-			if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0') {
+			bornInf = bornInf.toLowerCase();
+			bornSupp = bornSupp.toLowerCase();
+			if (bornInf.isEmpty()) {
+				if (bornSupp.charAt(0) <= '9' && bornSupp.charAt(0) >= '0') {
+					int fieldValueInt = Integer.parseInt(fieldValue);
+					int supp = Integer.parseInt(bornSupp);
+					return fieldValueInt <= supp;
+				}
+				return fieldValue.compareTo(bornSupp) < 0 ? true : false;
+			}
+
+			if (bornSupp.isEmpty()) {
+				if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0') {
+					int fieldValueInt = Integer.parseInt(fieldValue);
+					int inf = Integer.parseInt(bornInf);
+					return fieldValueInt >= inf;
+				}
+				return fieldValue.compareTo(bornInf) > 0 ? true : false;
+			}
+
+			// else
+			if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0' && bornSupp.charAt(0) <= '9'
+					&& bornSupp.charAt(0) >= '0') {
 				int fieldValueInt = Integer.parseInt(fieldValue);
 				int inf = Integer.parseInt(bornInf);
-				return fieldValueInt >= inf;
+				int supp = Integer.parseInt(bornSupp);
+				return fieldValueInt >= inf && fieldValueInt <= supp;
 			}
-			return fieldValue.compareTo(bornInf) > 0 ? true : false;
+			return fieldValue.compareTo(bornInf) > 0 && fieldValue.compareTo(bornSupp) < 0 ? true : false;
+		} finally {
+			lock.unlock();
 		}
-
-		// else
-		if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0' && bornSupp.charAt(0) <= '9'
-				&& bornSupp.charAt(0) >= '0') {
-			int fieldValueInt = Integer.parseInt(fieldValue);
-			int inf = Integer.parseInt(bornInf);
-			int supp = Integer.parseInt(bornSupp);
-			return fieldValueInt >= inf && fieldValueInt <= supp;
-		}
-		return fieldValue.compareTo(bornInf) > 0 && fieldValue.compareTo(bornSupp) < 0 ? true : false;
 	}
-	
-	public void readHoles(File holes){
-		
+
+	public List<Tuple<String, String>> getObject(int object) {
+		lock.lock();
+		try {
+			if (!holeList.containsKey(object)) {
+				ArrayList<Tuple<String, String>> oneObject = new ArrayList<>();
+				for (int j = 0; j < fieldsNames.length; j++) {
+					String fieldName = fieldsNames[j];
+					String fieldValue = getFieldValue(object, fieldName);
+					oneObject.add(new Tuple<String, String>(fieldName, fieldValue));
+				}
+				return oneObject;
+			}
+			return null;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	public List<List<Tuple<String, String>>> getAll() {
+		lock.lock();
+		try {
+			ArrayList<List<Tuple<String, String>>> totalList = new ArrayList<>();
+			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
+				List<Tuple<String, String>> object = getObject(i);
+				if (object != null)
+					totalList.add(object);
+			}
+			return totalList;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	public void readHoles(File holes) {
+		// InputStream is = new Input
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon

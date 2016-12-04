@@ -54,9 +54,9 @@ public class Tree {
 	}
 
 	public void add(List<Tuple<String, String>> requestList) {
+		Objects.requireNonNull(requestList);
 		lock.lock();
 		try {
-			Objects.requireNonNull(requestList);
 			Comparator<Tuple<String, String>> comp = new Comparator<Tuple<String, String>>() {
 				@Override
 				public int compare(Tuple<String, String> t1, Tuple<String, String> t2) {

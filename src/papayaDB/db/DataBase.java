@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import papayaDB.structures.Tree;
+import papayaDB.structures.Tuple;
 
 public class DataBase {
 	private Tree tree;
@@ -46,7 +47,7 @@ public class DataBase {
 			tree = new File(myDataBasePath + "/tree");
 			dataBase = new File(myDataBasePath + "/dataBase");
 			holes = new File(myDataBasePath + "/holes");
-			if( !(tree.createNewFile() || dataBase.createNewFile() || holes.createNewFile()) )
+			if( !(tree.createNewFile() && dataBase.createNewFile() && holes.createNewFile()) )
 				throw new IllegalStateException("One of DataBases settings file can't be created");
 		} else {
 			exists = true;
@@ -84,18 +85,42 @@ public class DataBase {
 		}
 		return reader.fieldEqualTo(object, field, fieldValue);
 	}
+	
+	public List<List<Tuple<String,String>>> getAll(){
+		return reader.getAll();
+	}
 
 	public static void main(String[] args) throws IOException {
 		ArrayList<String> list = new ArrayList<String>();
 		list.add("author");
 		list.add("price");
+	
 		DataBase db = new DataBase("Book", list);
+		
 		String[] object = { "X", "12" };
+		String[] object2 = { "Y", "52" };
+		String[] object3 = { "a", "0" };
+		
 		int index = db.addObject(object);
+		int index2 = db.addObject(object2);
+		int index3 = db.addObject(object3);
+		
 		db.writeAddedObjects();
-		System.out.println(db.reader.fieldEqualTo(index, "price", "12"));
+		
+		System.out.println(db.fieldCompareToValue(index, "price", "12"));
 		System.out.println(db.fieldCompareToValue(index, "price", "[;40]"));
 		System.out.println(db.fieldCompareToValue(index, "price", "40"));
 		System.out.println(db.fieldCompareToValue(index, "author", "[a;z]"));
+		
+		System.out.println(db.fieldCompareToValue(index2, "price", "12"));
+		System.out.println(db.fieldCompareToValue(index2, "price", "[;40]"));
+		System.out.println(db.fieldCompareToValue(index2, "price", "40"));
+		System.out.println(db.fieldCompareToValue(index2, "author", "[a;z]"));
+		
+		System.out.println(db.getAll());
+		
+		db.reader.suppressObject(index2);
+		
+		System.out.println(db.getAll());
 	}
 }

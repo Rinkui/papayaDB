@@ -1,25 +1,25 @@
 package papayaDB.structures;
 
 public class Tuple<T, V>{
-	private final T req;
-	private final V reqValue;
+	private final T key;
+	private final V value;
 
 	public Tuple(T req, V reqValue) {
-		this.req = req;
-		this.reqValue = reqValue;
+		this.key = req;
+		this.value = reqValue;
 	}
 
 	public T getKey() {
-		return req;
+		return key;
 	}
 
 	public V getValue() {
-		return reqValue;
+		return value;
 	}
 
 	@Override
 	public int hashCode() {
-		return req.hashCode() ^ reqValue.hashCode();
+		return key.hashCode() ^ value.hashCode();
 	}
 
 	@SuppressWarnings("unchecked") // on est sur que obj est un tuple
@@ -30,11 +30,11 @@ public class Tuple<T, V>{
 		if (!(obj instanceof Tuple))
 			return false;
 		Tuple<T, V> request = (Tuple<T, V>) obj;
-		return req.equals(request.req) && reqValue.equals(request.reqValue);
+		return key.equals(request.key) && value.equals(request.value);
 	}
 
 	@Override
 	public String toString() {
-		return "\"" + req + "\"=" + reqValue;
+		return "\"" + key + "\"=" + value;
 	}
 }
