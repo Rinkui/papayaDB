@@ -23,7 +23,6 @@ public class HoleList {
 	// rajoute un trou avec une taille qui fait la différence (on marquera les
 	// trous au début du fichier pour ne pas lire les trous
 	public Link removeHole(int size) {
-
 		Entry<Integer, Tuple<Integer, Integer>> nearestEntry = null;
 
 		for (Entry<Integer, Tuple<Integer, Integer>> entry : holeMap.entrySet()) {
@@ -32,12 +31,10 @@ public class HoleList {
 				nearestEntry = entry;
 			}
 		}
-
 		if (size >= nearestEntry.getValue().getKey() - SIZE_DIFFERENCE && size <= nearestEntry.getValue().getKey()){
 			return new Link(nearestEntry.getValue().getKey(), nearestEntry.getKey(),
 					nearestEntry.getValue().getValue());
 		}
-
 		return null;
 	}
 	

@@ -126,7 +126,7 @@ public class Tree {
 		addRec(requestAndValues, 0, head);
 	}
 	
-	private void addIdRec(Node currentNode){
+	private void removeIdRec(Node currentNode){
 		if (currentNode.linkedRequests == null)
 			return;
 		for (Map.Entry<Tuple<String, String>, Node> e : currentNode.linkedRequests.entrySet()) {
@@ -140,7 +140,7 @@ public class Tree {
 		
 	}
 
-	public void remvoveId(Integer id) {
+	public void removeId(Integer id) {
 		// enlève un objet de l'arbre
 	}
 

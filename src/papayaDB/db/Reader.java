@@ -371,7 +371,6 @@ public class Reader {
 			}
 		}
 
-		// else
 		try {
 			int fieldValueInt = Integer.parseInt(fieldValue);
 			return fieldValueInt >= Integer.parseInt(bornInf) && fieldValueInt <= Integer.parseInt(bornSupp);
