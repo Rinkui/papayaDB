@@ -91,6 +91,7 @@ public class DataBase {
 
 	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
 		if (fieldValue.charAt(0) == '[') {
+			//both empty?
 			String[] borns = fieldValue.substring(1, fieldValue.length() - 1).split(";");
 			return reader.fieldInfOrSupp(object, field, borns[0], borns[1]);
 		}

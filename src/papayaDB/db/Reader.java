@@ -298,41 +298,38 @@ public class Reader {
 	}
 
 	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
+		String fieldValue;
 		lock.lock();
 		try {
-			String fieldValue = getFieldValue(object, field).toLowerCase();
-
-			bornInf = bornInf.toLowerCase();
-			bornSupp = bornSupp.toLowerCase();
-			if (bornInf.isEmpty()) {
-				if (bornSupp.charAt(0) <= '9' && bornSupp.charAt(0) >= '0') {
-					int fieldValueInt = Integer.parseInt(fieldValue);
-					int supp = Integer.parseInt(bornSupp);
-					return fieldValueInt <= supp;
-				}
-				return fieldValue.compareTo(bornSupp) < 0 ? true : false;
-			}
-
-			if (bornSupp.isEmpty()) {
-				if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0') {
-					int fieldValueInt = Integer.parseInt(fieldValue);
-					int inf = Integer.parseInt(bornInf);
-					return fieldValueInt >= inf;
-				}
-				return fieldValue.compareTo(bornInf) > 0 ? true : false;
-			}
-
-			// else
-			if (bornInf.charAt(0) <= '9' && bornInf.charAt(0) >= '0' && bornSupp.charAt(0) <= '9'
-					&& bornSupp.charAt(0) >= '0') {
-				int fieldValueInt = Integer.parseInt(fieldValue);
-				int inf = Integer.parseInt(bornInf);
-				int supp = Integer.parseInt(bornSupp);
-				return fieldValueInt >= inf && fieldValueInt <= supp;
-			}
-			return fieldValue.compareTo(bornInf) > 0 && fieldValue.compareTo(bornSupp) < 0 ? true : false;
+			fieldValue = getFieldValue(object, field).toLowerCase();
 		} finally {
 			lock.unlock();
+		}
+
+		bornInf = bornInf.toLowerCase();
+		bornSupp = bornSupp.toLowerCase();
+		if (bornInf.isEmpty()) {
+			try {
+				return Integer.parseInt(fieldValue) <= Integer.parseInt(bornSupp);
+			} catch (NumberFormatException e) {
+				return fieldValue.compareTo(bornSupp) <= 0 ? true : false;
+			}
+		}
+
+		if (bornSupp.isEmpty()) {
+			try {
+				return Integer.parseInt(fieldValue) <= Integer.parseInt(bornInf);
+			} catch (NumberFormatException e) {
+				return fieldValue.compareTo(bornInf) >= 0 ? true : false;
+			}
+		}
+
+		// else
+		try {
+			int fieldValueInt = Integer.parseInt(fieldValue);
+			return fieldValueInt >= Integer.parseInt(bornInf) && fieldValueInt <= Integer.parseInt(bornSupp);
+		} catch (NumberFormatException e) {
+			return fieldValue.compareTo(bornInf) >= 0 && fieldValue.compareTo(bornSupp) <= 0 ? true : false;
 		}
 	}
 
@@ -369,8 +366,34 @@ public class Reader {
 		}
 	}
 
-	public void readHoles(File holes) {
-		// InputStream is = new Input
+	public void readHoles(File holes) throws IOException {
+		long size = Files.size(holes.toPath());
+		if(size == 0){
+			return;
+		}
+		FileInputStream in = new FileInputStream(holes);
+		FileChannel fc = in.getChannel();
+		MappedByteBuffer map = fc.map(MapMode.READ_WRITE, 0, fc.size());
+		while(map.remaining() >= (Integer.BYTES * 3)){
+			this.holeList.addHole(map.getInt(), map.getInt(), map.getInt());
+		}
+		in.close();
+	}
+	
+	public void writeHoles(File holes) throws IOException {
+		RandomAccessFile raf = new RandomAccessFile(holes, "rw");
+		int lenght = this.holeList.size();
+		raf.setLength(lenght * 3 * Integer.BYTES);
+		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght);
+		Iterator<Integer> iterator = holeList.getIterator();
+		while(iterator.hasNext()){
+			int value = iterator.next();
+			map.putInt(value);
+			Tuple<Integer, Integer> tuple = holeList.get(value);
+			map.putInt(tuple.getKey());
+			map.putInt(tuple.getValue());
+		}
+		raf.close();
 	}
 
 	// pour récuperer une donnée de map : il faut placer le curseur au bon
