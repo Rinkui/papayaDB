@@ -16,17 +16,20 @@ import papayaDB.structures.Tuple;
 public class DataBase {
 	private Tree tree;
 	private Reader reader;
+	private int modification;
+	private final static int MAX_MODIF = 5000;
 
 	public DataBase(String type) throws IOException {
 		String path = "DataBases/" + type;
 		
 		if(exist(type)){
-			initReader(new File(path + "/dataBase"));
-			this.tree = Tree.readTreeInFile(new File(path + "/tree")); //tree
-			reader.readHoles(new File(path + "/holes")); //holes
+			initReader(new File(path + "/dataBase"), new File(path+"/holes"));
+//			this.tree = Tree.readTreeInFile(new File(path + "/tree")); //tree
+			this.tree = new Tree();
+			reader.readHoles(); //holes
 		} else {
 			createFileIfNeeded(type);
-			initReader(new File(path + "/dataBase"));
+			initReader(new File(path + "/dataBase"), new File(path+"/holes"));
 			this.tree = new Tree();
 		}
 	}
@@ -64,11 +67,11 @@ public class DataBase {
 		}
 	}
 
-	private void initReader(File dataBase) throws IOException{
+	private void initReader(File dataBase, File hole) throws IOException{
 		RandomAccessFile raf = new RandomAccessFile(dataBase, "rw");
 		int size = raf.length() > 0 ? (int) raf.length() * 2 : 4096;
 		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, size);		
-		this.reader = new Reader(map, raf);
+		this.reader = new Reader(map, raf, hole);
 	}
 	
 	public DataBase(String type, List<String> fields) throws IOException {
@@ -76,23 +79,33 @@ public class DataBase {
 		reader.writeTypeAndFields(type, fields);
 	}
 
-	public int addObject(String[] object) {
+	public int add(List<Tuple<String,String>> object) throws IOException {
+		modification += 1;
+		if( modification >= MAX_MODIF){
+			writeAddedObjects();
+			writeHole();
+		}
 		return reader.addObject(object);
 	}
 
-	public void writeAddedObjects() throws IOException {
+	private void writeAddedObjects() throws IOException {
 		reader.writeAddedObjects();
 	}
-
-	public boolean fieldCompareToValue(int object, String field, String fieldValue) {
-		return reader.fieldCompareToValue(object, field, fieldValue);
+	
+	private void writeHole() throws IOException{
+		reader.writeHoles();
 	}
 	
 	public List<List<Tuple<String,String>>> getAll(){
 		return reader.getAll();
 	}
 	
-	public boolean remove(int object){
+	public boolean remove(int object) throws IOException{
+		modification += 1;
+		if( modification >= MAX_MODIF){
+			writeAddedObjects();
+			writeHole();
+		}
 		return reader.suppressObject(object);
 	}
 	
@@ -133,34 +146,28 @@ public class DataBase {
 	
 		DataBase db = new DataBase("Book", list);
 		
-		String[] object = { "X", "12" };
-		String[] object2 = { "Y", "52" };
-		String[] object3 = { "a", "0" };
+		List<Tuple<String, String>> object = new ArrayList<>();
+		object.add(new Tuple<String, String>("author", "X"));
+		object.add(new Tuple<String, String>("price", "12"));
+		List<Tuple<String, String>> object2 = new ArrayList<>();
+		object2.add(new Tuple<String, String>("price", "52"));
+		object2.add(new Tuple<String, String>("author", "Y"));
+		List<Tuple<String, String>> object3 = new ArrayList<>();
+		object3.add(new Tuple<String, String>("price", "0"));
+		object3.add(new Tuple<String, String>("author", "a"));
 		
-		int index = db.addObject(object);
-		int index2 = db.addObject(object2);
-		int index3 = db.addObject(object3);
+		int index = db.add(object);
+		int index2 = db.add(object2);
+		int index3 = db.add(object3);
 		
 		db.writeAddedObjects();
-		
-		System.out.println("Index 1");
-		System.out.println(db.fieldCompareToValue(index, "price", "12"));
-		System.out.println(db.fieldCompareToValue(index, "price", "[;40]"));
-		System.out.println(db.fieldCompareToValue(index, "price", "40"));
-		System.out.println(db.fieldCompareToValue(index, "author", "[a;z]"));
-		
-		System.out.println("\nIndex 2");
-		System.out.println(db.fieldCompareToValue(index2, "price", "12"));
-		System.out.println(db.fieldCompareToValue(index2, "price", "[;40]"));
-		System.out.println(db.fieldCompareToValue(index2, "price", "40"));
-		System.out.println(db.fieldCompareToValue(index2, "author", "[a;z]"));
 		
 		System.out.println("\nGetAll");
 		System.out.println(db.getAll());
 		
-//		db.reader.suppressObject(index2);
-//		
-//		System.out.println(db.getAll());
+		db.remove(index2);
+		
+		System.out.println(db.getAll());
 	
 		
 		List<Tuple<String, String>> requests = new ArrayList<>();

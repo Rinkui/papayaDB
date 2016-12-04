@@ -49,14 +49,16 @@ public class Reader {
 	private int[] objectsIndex = null; // indexs des objets (les indexs que l'on
 										// trouve dans le fichier de int)
 	private HoleList holeList = new HoleList();
+	private File holeFile = null;
 	private ArrayList<Tuple<Integer, String[]>> addList; // string a écrire dans
 	// le fichier
 	private String type = null;
 	private int indexTableCapacity;
 
-	public Reader(MappedByteBuffer map, RandomAccessFile file) {
+	public Reader(MappedByteBuffer map, RandomAccessFile file, File hole) {
 		this.map = map;
 		this.file = file;
+		this.holeFile = hole;
 	}
 
 	private void firstTypeReading() {
@@ -193,21 +195,30 @@ public class Reader {
 			addList = new ArrayList<Tuple<Integer, String[]>>();
 		addList.add(new Tuple<Integer, String[]>(size, object));
 	}
+	
+	private String[] objectToArray(List<Tuple<String, String>> object){
+		String[] modifedObj = new String[fieldsNames.length];
+		for(Tuple<String,String> tuple : object){
+			modifedObj[getFieldIndex(tuple.getKey())] = tuple.getValue();
+		}
+		return modifedObj;
+	}
 
-	public int addObject(String[] object) {
+	public int addObject(List<Tuple<String, String>> object) {
+		String[] modifedObj = objectToArray(object);
 		int size = 4; // premier int donne le nombre de champs
-		int valuesSize[] = new int[object.length];
+		int valuesSize[] = new int[modifedObj.length];
 		int fieldSize;
-		for (int i = 0; i < object.length; i++) {
-			fieldSize = getFieldSize(object[i]);
+		for (int i = 0; i < modifedObj.length; i++) {
+			fieldSize = getFieldSize(modifedObj[i]);
 			// on met directement les octets avec le int et la String
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
 		lock.lock();
 		try {
-			Link link = getNewIndex(object, size);
-			addToAddList(link.getMapIndex(), object);
+			Link link = getNewIndex(modifedObj, size);
+			addToAddList(link.getMapIndex(), modifedObj);
 			fillObjectsIndex(valuesSize, link.getTableIndex());
 			return link.getTableIndex();
 		} finally {
@@ -400,12 +411,12 @@ public class Reader {
 		}
 	}
 
-	public void readHoles(File holes) throws IOException {
-		long size = Files.size(holes.toPath());
+	public void readHoles() throws IOException {
+		long size = Files.size(holeFile.toPath());
 		if(size == 0){
 			return;
 		}
-		FileInputStream in = new FileInputStream(holes);
+		FileInputStream in = new FileInputStream(holeFile);
 		FileChannel fc = in.getChannel();
 		MappedByteBuffer map = fc.map(MapMode.READ_WRITE, 0, fc.size());
 		while(map.remaining() >= (Integer.BYTES * 3)){
@@ -414,8 +425,8 @@ public class Reader {
 		in.close();
 	}
 	
-	public void writeHoles(File holes) throws IOException {
-		RandomAccessFile raf = new RandomAccessFile(holes, "rw");
+	public void writeHoles() throws IOException {
+		RandomAccessFile raf = new RandomAccessFile(holeFile, "rw");
 		int lenght = this.holeList.size();
 		raf.setLength(lenght * 3 * Integer.BYTES);
 		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght);
