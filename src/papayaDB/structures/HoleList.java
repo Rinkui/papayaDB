@@ -1,6 +1,7 @@
 package papayaDB.structures;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 public class HoleList {
@@ -32,9 +33,10 @@ public class HoleList {
 			}
 		}
 
-		if (size >= nearestEntry.getValue().getKey() - SIZE_DIFFERENCE && size <= nearestEntry.getValue().getKey())
+		if (size >= nearestEntry.getValue().getKey() - SIZE_DIFFERENCE && size <= nearestEntry.getValue().getKey()){
 			return new Link(nearestEntry.getValue().getKey(), nearestEntry.getKey(),
 					nearestEntry.getValue().getValue());
+		}
 
 		return null;
 	}
@@ -43,8 +45,20 @@ public class HoleList {
 		return holeMap.containsKey(tableIntex);
 	}
 	
+	public Tuple<Integer, Integer> get(int index){
+		return holeMap.get(index);
+	}
+	
 	public boolean isEmpty(){
 		return holeMap.isEmpty();
+	}
+	
+	public int size(){
+		return holeMap.size();
+	}
+	
+	public Iterator<Integer> getIterator(){
+		return holeMap.keySet().iterator();
 	}
 
 	@Override
