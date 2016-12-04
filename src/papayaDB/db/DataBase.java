@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +17,9 @@ public class DataBase {
 	private Reader reader;
 
 	public DataBase(String type) throws IOException {
-		//File tree, dataBase, holes;
 		String path = "DataBases/" + type;
 		
 		if(exist(type)){
-			//tree = new File(path + "/tree");
-			//dataBase = new File(path + "/dataBase");
-			//holes = new File(path + "/holes");
 			initReader(new File(path + "/dataBase"));
 			this.tree = Tree.readTreeInFile(new File(path + "/tree")); //tree
 			reader.readHoles(new File(path + "/holes")); //holes
@@ -99,6 +93,10 @@ public class DataBase {
 	
 	public List<List<Tuple<String,String>>> getAll(){
 		return reader.getAll();
+	}
+	
+	public boolean remove(int object){
+		return reader.suppressObject(object);
 	}
 
 	public static void main(String[] args) throws IOException {

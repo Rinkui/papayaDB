@@ -152,12 +152,15 @@ public class Reader {
 		return 4 + 2 * field.length();
 	}
 
-	public void suppressObject(int objectTableIndex) {
+	public boolean suppressObject(int objectTableIndex) {
+		if(objectTableIndex < 0 || objectTableIndex > indexTableCapacity-fieldsNames.length)
+			return false;
 		lock.lock();
 		try {
 			holeList.addHole(objectTableIndex, objectsIndex[objectTableIndex], getObjectsSize(objectTableIndex));
 			if (objectTableIndex == indexTableCapacity - fieldsNames.length)
 				indexTableCapacity -= fieldsNames.length;
+			return true;
 		} finally {
 			lock.unlock();
 		}
