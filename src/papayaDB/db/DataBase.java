@@ -34,54 +34,6 @@ public class DataBase {
 			initReader(new File(path + "/dataBase"));
 			this.tree = new Tree();
 		}
-		
-		
-		
-		Path dataBasesDirectoryPath = Paths.get("DataBases");
-		File dataBasesDirectory = dataBasesDirectoryPath.toFile();
-		File[] files = dataBasesDirectory.listFiles();
-		File myDataBaseDir = null, tree = null, dataBase = null, holes = null;
-		Boolean exists = false;
-		String myDataBasePath = "DataBases/" + type;
-		
-		for (File file : files) {
-			if (file.getName().equals(type)){
-				myDataBaseDir = file;
-				for(File settings : myDataBaseDir.listFiles()){
-					String fileName = settings.getName();
-					if(fileName.equals("tree"))
-						tree = settings;
-					if(fileName.equals("holes"))
-						holes = settings;
-					if(fileName.equals("dataBase"))
-						dataBase = settings;
-				}
-			}
-		}
-		
-		if (myDataBaseDir == null) {
-			myDataBaseDir = new File(myDataBasePath);
-			if (!myDataBaseDir.mkdir())
-				throw new IllegalStateException("DataBase directory can't be created");
-			tree = new File(myDataBasePath + "/tree");
-			dataBase = new File(myDataBasePath + "/dataBase");
-			holes = new File(myDataBasePath + "/holes");
-			if( !(tree.createNewFile() && dataBase.createNewFile() && holes.createNewFile()) )
-				throw new IllegalStateException("One of DataBases settings file can't be created");
-		} else {
-			exists = true;
-		}
-		RandomAccessFile raf = new RandomAccessFile(dataBase, "rw");
-		int size = raf.length() > 0 ? (int) raf.length() * 2 : 4096;
-		MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, size);		
-		this.reader = new Reader(map, raf);
-		
-		if (exists) {
-			this.tree = Tree.readTreeInFile(tree);
-			reader.readHoles(holes);
-		} else {
-			this.tree = new Tree();
-		}
 	}
 	
 	private boolean exist(String type){
