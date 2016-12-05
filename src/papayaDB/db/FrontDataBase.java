@@ -1,6 +1,7 @@
 package papayaDB.db;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,7 +27,7 @@ public class FrontDataBase {
 	public List<List<Tuple<String, String>>> get(String dbName, List<Tuple<String, String>> filter) {
 		DataBase db = dataBasePool.get(dbName);
 		if(db == null){
-			return null;
+			return new ArrayList<>(0);
 		}
 		return db.get(filter);
 	}
@@ -34,7 +35,7 @@ public class FrontDataBase {
 	public List<List<Tuple<String, String>>> getAll(String dbName) {
 		DataBase db = dataBasePool.get(dbName);
 		if(db == null){
-			return null;
+			return new ArrayList<>(0);
 		}
 		return db.getAll();
 	}

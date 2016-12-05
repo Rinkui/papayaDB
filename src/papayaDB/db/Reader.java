@@ -9,6 +9,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -215,6 +216,7 @@ public class Reader {
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
+		System.out.println(Arrays.toString(modifedObj));
 		lock.lock();
 		try {
 			Link link = getNewIndex(modifedObj, size);
@@ -407,6 +409,8 @@ public class Reader {
 				if (object != null)
 					totalList.add(object);
 			}
+			System.out.println("TOTAL LIST");
+			System.out.println(totalList);
 			return totalList;
 		} finally {
 			lock.unlock();

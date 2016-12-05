@@ -82,6 +82,7 @@ public class DataBase {
 	public int add(List<Tuple<String,String>> object) throws IOException {
 		modification += 1;
 		if( modification >= MAX_MODIF){
+			modification = 0;
 			writeAddedObjects();
 			writeHole();
 		}
@@ -103,6 +104,7 @@ public class DataBase {
 	public boolean remove(int object) throws IOException{
 		modification += 1;
 		if( modification >= MAX_MODIF){
+			modification = 0;
 			writeAddedObjects();
 			writeHole();
 		}

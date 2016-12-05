@@ -61,7 +61,6 @@ public class ClientApi implements Api{
 	@Override
 	public Stream<JsonObject> get(String dbName, List<Tuple<String, String>> filter) {
 		String url = formatUrl(dbName, filter);
-		System.out.println(url);
 		Future<Stream<JsonObject>> future = getProcess(url);
 		lock.lock();
 		try{
@@ -118,8 +117,18 @@ public class ClientApi implements Api{
 
 	@Override
 	public boolean delete(String dbName, int id) {
-		// TODO Auto-generated method stub
-		return false;
+		Future<Boolean> future = deleteProcess("/" + dbName + "/" + id);
+		lock.lock();
+		try{
+			while(!future.isComplete()){
+				waitResult.await();
+			}
+		} catch (InterruptedException e) {
+			future.fail(e);
+		} finally {
+			lock.unlock();
+		}
+		return future.result();
 	}
 	
 	private String formatUrl(String dbName, List<Tuple<String, String>> filter){
@@ -128,9 +137,9 @@ public class ClientApi implements Api{
 	}
 	
 	private Future<Boolean> postProcess(String url, JsonObject data) {
+		System.out.println(data);
 		Future<Boolean> future = Future.future();
 		httpclient.post(url, response -> {
-			//TODO send data
 			lock.lock();
 			try{
 				future.complete(response.statusCode() == 200);
@@ -175,7 +184,7 @@ public class ClientApi implements Api{
 	private JsonObject fieldsToJson(List<String> list){
 		JsonObject o = new JsonObject();
 		JsonArray array = new JsonArray(list);
-		list.forEach(tuple -> o.put("fields", array));
+		o.put("fields", array);
 		return o;
 	}
 	
@@ -191,11 +200,52 @@ public class ClientApi implements Api{
 		ClientApi ca = new ClientApi(vertx.createHttpClient(hco));
 		
 		List<Tuple<String, String>> filter = new ArrayList<>(3);
-		filter.add(new Tuple<>("name", "abc /def"));
+		filter.add(new Tuple<>("name", "abc"));
 		filter.add(new Tuple<>("year", "[2010;2015]"));
 		filter.add(new Tuple<>("price", "[;30]"));
 		Stream<JsonObject> sjo = ca.get("books", filter);
-		sjo.forEach(System.out::println);
+		System.out.println(sjo.count());
+		
+		ArrayList<String> list = new ArrayList<String>();
+		list.add("author");
+		list.add("price");
+	
+		String dbName = "Books";
+		System.out.println(ca.createDb(dbName, list));
+		
+		List<Tuple<String, String>> object = new ArrayList<>();
+		object.add(new Tuple<String, String>("author", "X"));
+		object.add(new Tuple<String, String>("price", "12"));
+		List<Tuple<String, String>> object2 = new ArrayList<>();
+		object2.add(new Tuple<String, String>("price", "52"));
+		object2.add(new Tuple<String, String>("author", "Y"));
+		List<Tuple<String, String>> object3 = new ArrayList<>();
+		object3.add(new Tuple<String, String>("price", "0"));
+		object3.add(new Tuple<String, String>("author", "a"));
+		
+		System.out.println(ca.post(dbName, object));
+		System.out.println(ca.post(dbName, object2));
+		System.out.println(ca.post(dbName, object3));
+		
+		System.out.println("\nGetAll");
+		ArrayList<Integer> id = new ArrayList<>(1);
+		ca.getAll(dbName).forEach(o -> {
+			System.out.println(o);
+			id.add(0, Integer.valueOf(o.getString("id")));
+		});
+		
+		
+		System.out.println("\nGetAll After Delete");
+		ca.delete(dbName, id.get(0));
+		
+		ca.getAll(dbName).forEach(System.out::println);
+	
+		
+		List<Tuple<String, String>> requests = new ArrayList<>();
+		requests.add(new Tuple<String, String>("price", "[;100]"));
+		Stream<JsonObject> resultForServer = ca.get(dbName, requests);
+		System.out.println("\nResult for server");
+		resultForServer.forEach(System.out::println);
 
 	}
 	

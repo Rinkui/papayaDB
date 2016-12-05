@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.vertx.core.AbstractVerticle;
@@ -23,11 +22,14 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import papayaDB.api.Api;
+import papayaDB.db.FrontDataBase;
 import papayaDB.structures.Tuple;
 
 public class ServerApi extends AbstractVerticle implements Api{
+	FrontDataBase fdb = new FrontDataBase();
 	BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(100);
 	ExecutorService executor = new ThreadPoolExecutor(10, 50, 10, TimeUnit.MINUTES, queue);
 	
@@ -35,12 +37,13 @@ public class ServerApi extends AbstractVerticle implements Api{
 	public void start() {
 		Router router = Router.router(vertx);
 		
+		router.route().handler(BodyHandler.create());
+		
 		//For DB
 		router.post("/:dbName/create").handler(routingContext -> executor.execute(runnableForCreateDb(routingContext)));
 		router.delete("/:dbName/delete").handler(routingContext -> executor.execute(runnableForDeleteDb(routingContext)));
 
 		//For Element
-		//http://localhost:8080/books/name/"abc /def"/year/[2010;2015]/price/[;30]
 		router.get("/:dbName/all").handler(routingContext -> executor.execute(runnableForGetAll(routingContext)));
 		router.get("/:dbName/*").handler(routingContext -> executor.execute(runnableForGet(routingContext)));
 		router.post("/:dbName").handler(routingContext -> executor.execute(runnableForPost(routingContext)));
@@ -59,10 +62,11 @@ public class ServerApi extends AbstractVerticle implements Api{
 			public void run() {
 				HttpServerResponse response = routingContext.response();
 				HttpServerRequest request = routingContext.request();
+				JsonArray ja = routingContext.getBodyAsJson().getJsonArray("fields");
 				String base = request.getParam("dbName");
-				JsonArray ja = new JsonArray(request.getParam("fields"));
 				response.setStatusCode(200).end(String.valueOf(createDb(base, ja.getList())));
 			}
+			
 		};
 	}
 	
@@ -123,20 +127,14 @@ public class ServerApi extends AbstractVerticle implements Api{
 			public void run() {
 				HttpServerResponse response = routingContext.response();
 				HttpServerRequest request = routingContext.request();
-				
-				request.handler(new Handler<Buffer>() {
-					@Override
-					public void handle(Buffer data) {
-						String base = request.getParam("dbName");
-						List<Tuple<String, String>> fields = jsonToList(new JsonObject(data.toString()));
-						boolean success = post(base, fields);
-						if(success){
-							response.setStatusCode(200).end();
-						} else {
-							response.setStatusCode(500).end();
-						}
-					}
-				});
+				String base = request.getParam("dbName");
+				List<Tuple<String, String>> fields = jsonToList(routingContext.getBodyAsJson());
+				boolean success = post(base, fields);
+				if(success){
+					response.setStatusCode(200).end();
+				} else {
+					response.setStatusCode(500).end();
+				}
 			}
 		};
 	}
@@ -193,38 +191,33 @@ public class ServerApi extends AbstractVerticle implements Api{
 	
 	@Override
 	public boolean createDb(String dbName, List<String> fields) {
-		// TODO Auto-generated method stub
-		return false;
+		return fdb.createDb(dbName, fields);
 	}
 
 	@Override
 	public boolean deleteDb(String dbName) {
-		// TODO Auto-generated method stub
-		return false;
+		return fdb.deleteDb(dbName);
 	}
 
 	@Override
 	public Stream<JsonObject> get(String dbName, List<Tuple<String, String>> filter) {
-		//TODO
-		return IntStream.range(0, 50).mapToObj(i -> listToJson(test(i)));
+		return fdb.get(dbName, filter).stream().map(object -> listToJson(object));
 	}
 	
 	@Override
 	public Stream<JsonObject> getAll(String dbName) {
-		//TODO
-		return IntStream.range(0, 50).mapToObj(i -> listToJson(test(i)));
+		return fdb.getAll(dbName).stream().map(object -> listToJson(object));
 	}
 
 	@Override
 	public boolean post(String dbName, List<Tuple<String, String>> fields) {
-		// TODO Auto-generated method stub
-		return true;
+		//System.out.println(fields);
+		return fdb.post(dbName, fields);
 	}
 
 	@Override
 	public boolean delete(String dbName, int id) {
-		// TODO Auto-generated method stub
-		return false;
+		return fdb.delete(dbName, id);
 	}
 
 	public static void main(String[] args) {
@@ -235,11 +228,5 @@ public class ServerApi extends AbstractVerticle implements Api{
 	
 		Vertx vertx = Vertx.vertx();
 		vertx.deployVerticle(new ServerApi());
-	}
-
-	private List<Tuple<String, String>> test(int i){
-		ArrayList<Tuple<String, String>> result = new ArrayList<>(1);
-		result.add(new Tuple<String, String>("id", String.valueOf(i)));
-		return result;
 	}
 }
