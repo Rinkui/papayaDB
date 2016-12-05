@@ -166,9 +166,11 @@ public class DataBase {
 		
 		System.out.println("\nGetAll");
 		System.out.println(db.getAll());
+		System.out.println(db.reader.getAddList());
 		
 		db.remove(index2);
 		
+		System.out.println("Après");
 		System.out.println(db.getAll());
 	
 		

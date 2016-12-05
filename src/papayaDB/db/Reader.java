@@ -132,18 +132,13 @@ public class Reader {
 		return sb.toString();
 	}
 
-	public String getFieldValue(int objectTableIndex, String fieldName) {
-		lock.lock();
-		try {
-			if (objectsIndex == null)
-				firstObjectsReading(fieldName.length());
-			int fieldIndex;
-			if ((fieldIndex = getFieldIndex(fieldName)) == -1)
-				throw new IllegalArgumentException("Field name doesn't exist");
-			return readFieldValue(objectTableIndex, fieldIndex);
-		} finally {
-			lock.unlock();
-		}
+	private String getFieldValue(int objectTableIndex, String fieldName) {
+		if (objectsIndex == null)
+			firstObjectsReading(fieldName.length());
+		int fieldIndex;
+		if ((fieldIndex = getFieldIndex(fieldName)) == -1)
+			throw new IllegalArgumentException("Field name doesn't exist");
+		return readFieldValue(objectTableIndex, fieldIndex);
 	}
 
 	// les index fonctionnent selon les bytes, donc un int = 4 et un char = 2
@@ -391,26 +386,26 @@ public class Reader {
 				for (int j = 0; j < fieldsNames.length; j++) {
 					String fieldName = fieldsNames[j];
 					String fieldValue = getFieldValue(object, fieldName);
-					oneObject.add(new Tuple<String, String>(fieldName, fieldValue));
+					if( !fieldValue.equals("") )
+						oneObject.add(new Tuple<String, String>(fieldName, fieldValue));
 				}
-				if( oneObject.isEmpty()) 
+				if (oneObject.isEmpty())
 					oneObject = getFromAddList(object);
-				if( !oneObject.isEmpty())
+				if (!oneObject.isEmpty())
 					oneObject.add(new Tuple<String, String>("id", String.valueOf(object)));
 				return oneObject;
 			}
-			return null;
+			return new ArrayList<>();
 		} finally {
 			lock.unlock();
 		}
 	}
-	
-	private List<Tuple<String, String>> getFromAddList(int object){
+
+	private List<Tuple<String, String>> getFromAddList(int object) {
 		List<Tuple<String, String>> objectList = new ArrayList<>();
-		for(Tuple<Integer, String[]> e : addList){
-			if( e.getKey() == object ){
-				objectList.add(new Tuple<String, String>("id", String.valueOf(object)));
-				for(int i = 0 ; i < fieldsNames.length ; i ++){
+		for (Tuple<Integer, String[]> e : addList) {
+			if (e.getKey() == object) {
+				for (int i = 0; i < fieldsNames.length; i++) {
 					objectList.add(new Tuple<String, String>(fieldsNames[i], e.getValue()[i]));
 				}
 			}
@@ -424,12 +419,12 @@ public class Reader {
 			ArrayList<List<Tuple<String, String>>> totalList = new ArrayList<>();
 			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
 				List<Tuple<String, String>> object = getObject(i);
-				if (object != null)
+				if (!object.isEmpty())
 					totalList.add(object);
 				else {
 					object = getFromAddList(i);
-					if( object != null )
-						totalList.add(object);					
+					if (!object.isEmpty())
+						totalList.add(object);
 				}
 			}
 			System.out.println("TOTAL LIST");
@@ -438,6 +433,10 @@ public class Reader {
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	public ArrayList<Tuple<Integer, String[]>> getAddList() {
+		return addList;
 	}
 
 	public void readHoles() throws IOException {
