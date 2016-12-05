@@ -133,11 +133,10 @@ public class ClientApi implements Api{
 	
 	private String formatUrl(String dbName, List<Tuple<String, String>> filter){
 		Objects.requireNonNull(filter);
-		return "/" + dbName + "/" + filter.stream().map(t -> t.getKey() + "/\"" + t.getValue() + "\"").collect(Collectors.joining("/"));
+		return "/" + dbName + "/" + filter.stream().map(t -> t.getKey() + "/" + t.getValue()).collect(Collectors.joining("/"));
 	}
 	
 	private Future<Boolean> postProcess(String url, JsonObject data) {
-		System.out.println(data);
 		Future<Boolean> future = Future.future();
 		httpclient.post(url, response -> {
 			lock.lock();
@@ -235,17 +234,17 @@ public class ClientApi implements Api{
 		});
 		
 		
-		System.out.println("\nGetAll After Delete");
-		ca.delete(dbName, id.get(0));
+		//System.out.println("\nGetAll After Delete");
+		//ca.delete(dbName, id.get(0));
 		
-		ca.getAll(dbName).forEach(System.out::println);
+		//ca.getAll(dbName).forEach(System.out::println);
 	
 		
-		List<Tuple<String, String>> requests = new ArrayList<>();
-		requests.add(new Tuple<String, String>("price", "[;100]"));
-		Stream<JsonObject> resultForServer = ca.get(dbName, requests);
-		System.out.println("\nResult for server");
-		resultForServer.forEach(System.out::println);
+//		List<Tuple<String, String>> requests = new ArrayList<>();
+//		requests.add(new Tuple<String, String>("price", "[;50]"));
+//		Stream<JsonObject> resultForServer = ca.get(dbName, requests);
+//		System.out.println("\nResult for server");
+//		resultForServer.forEach(System.out::println);
 
 	}
 	

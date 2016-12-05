@@ -13,9 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -93,7 +91,6 @@ public class ServerApi extends AbstractVerticle implements Api{
 			public void run() {
 				HttpServerResponse response = routingContext.response();
 				HttpServerRequest request = routingContext.request();
-				System.out.println(request.path());
 				String[] pathCut = splitRequest(request.path());
 				
 				if(pathCut.length%2 == 0){
@@ -114,7 +111,6 @@ public class ServerApi extends AbstractVerticle implements Api{
 			public void run() {
 				HttpServerResponse response = routingContext.response();
 				HttpServerRequest request = routingContext.request();
-				System.out.println(request.path());
 				String base = request.getParam("dbName");
 				response.setStatusCode(200).end(getAll(base).map(jsonObject -> jsonObject.encode()).collect(Collectors.joining(",", "{\"result\":[", "]}")));
 			}
@@ -160,7 +156,7 @@ public class ServerApi extends AbstractVerticle implements Api{
 	private String[] splitRequest(String request){
 		String path = request.replaceAll("%22", "\"").replaceAll("%20", " ");
 		
-		Pattern pattern = Pattern.compile("\\/(\"(\\[{0,1}(\\w|\\s|\\/|;)*\\]{0,1})\"|\\[{0,1}(\\w|\\s|;)*\\]{0,1})");
+		Pattern pattern = Pattern.compile("\\/(\"((\\w|\\s|\\/|;)*)\"|\\[{0,1}(\\w|\\s|;)*\\]{0,1})");
 		Matcher m = pattern.matcher(path);
 		
 		return m.results().map(c -> c.group(1)).toArray(String[]::new);
@@ -211,7 +207,6 @@ public class ServerApi extends AbstractVerticle implements Api{
 
 	@Override
 	public boolean post(String dbName, List<Tuple<String, String>> fields) {
-		//System.out.println(fields);
 		return fdb.post(dbName, fields);
 	}
 

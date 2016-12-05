@@ -33,7 +33,7 @@ public class DataBase {
 			this.tree = new Tree();
 		}
 	}
-	
+
 	private boolean exist(String type){
 		if(!Paths.get("DataBases").toFile().exists()){ return false; }
 		String path = "DataBases/" + type;
@@ -80,13 +80,16 @@ public class DataBase {
 	}
 
 	public int add(List<Tuple<String,String>> object) throws IOException {
-		modification += 1;
-		if( modification >= MAX_MODIF){
-			modification = 0;
-			writeAddedObjects();
-			writeHole();
-		}
-		return reader.addObject(object);
+//		modification += 1;
+//		if( modification >= MAX_MODIF){
+//			modification = 0;
+//			writeAddedObjects();
+//			writeHole();
+//		}
+		int objectId = reader.addObject(object);
+		writeAddedObjects();
+		writeHole();
+		return objectId;
 	}
 
 	private void writeAddedObjects() throws IOException {
@@ -102,13 +105,16 @@ public class DataBase {
 	}
 	
 	public boolean remove(int object) throws IOException{
-		modification += 1;
-		if( modification >= MAX_MODIF){
-			modification = 0;
-			writeAddedObjects();
-			writeHole();
-		}
-		return reader.suppressObject(object);
+//		modification += 1;
+//		if( modification >= MAX_MODIF){
+//			modification = 0;
+//			writeAddedObjects();
+//			writeHole();
+//		}
+		boolean suppressObject = reader.suppressObject(object);
+		writeAddedObjects();
+		writeHole();
+		return suppressObject;
 	}
 	
 	public List<List<Tuple<String,String>>> get(List<Tuple<String,String>> requests){
@@ -129,7 +135,9 @@ public class DataBase {
 				set = reader.getObjectsRequested(set, req);
 				finalList.add(new Tuple<Tuple<String,String>, List<Integer>>(req, set));
 			}	
-			new Thread(()->{			
+			new Thread(()->{
+				if(tree == null)
+					return;
 				tree.add(finalList);
 			}).start();
 			values = finalList.get(finalList.size()-1).getValue();
@@ -146,7 +154,7 @@ public class DataBase {
 		list.add("author");
 		list.add("price");
 	
-		DataBase db = new DataBase("Book", list);
+		DataBase db = new DataBase("Books", list);
 		
 		List<Tuple<String, String>> object = new ArrayList<>();
 		object.add(new Tuple<String, String>("author", "X"));
@@ -166,7 +174,6 @@ public class DataBase {
 		
 		System.out.println("\nGetAll");
 		System.out.println(db.getAll());
-		System.out.println(db.reader.getAddList());
 		
 		db.remove(index2);
 		
@@ -175,7 +182,7 @@ public class DataBase {
 	
 		
 		List<Tuple<String, String>> requests = new ArrayList<>();
-		requests.add(new Tuple<String, String>("price", "[;100]"));
+		requests.add(new Tuple<String, String>("price", "[;10]"));
 		List<List<Tuple<String,String>>> resultForServer = db.get(requests);
 		System.out.println("\nResult for server");
 		System.out.println(resultForServer);

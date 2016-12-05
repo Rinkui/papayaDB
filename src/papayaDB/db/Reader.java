@@ -9,12 +9,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-
-import com.sun.org.apache.xml.internal.serializer.ToUnknownStream;
 
 import papayaDB.structures.HoleList;
 import papayaDB.structures.Link;
@@ -72,7 +69,6 @@ public class Reader {
 			sb.append(map.getChar());
 		}
 		type = sb.toString();
-
 	}
 
 	private void firstFieldsReading() {
@@ -213,7 +209,6 @@ public class Reader {
 			valuesSize[i] = fieldSize;
 			size += fieldSize;
 		}
-		System.out.println(Arrays.toString(modifedObj));
 		lock.lock();
 		try {
 			Link link = getNewIndex(modifedObj, size);
@@ -234,6 +229,9 @@ public class Reader {
 	public void writeAddedObjects() throws IOException {
 		lock.lock();
 		try {
+			if(addList == null){
+				return;
+			}
 			for (Tuple<Integer, String[]> tuple : addList) {
 				int pos = tuple.getKey();
 				if (pos > map.limit())
@@ -344,16 +342,24 @@ public class Reader {
 	}
 
 	public boolean fieldInfOrSupp(int object, String field, String bornInf, String bornSupp) {
+		int fieldIndex = getFieldIndex(field);
 		String fieldValue;
 		lock.lock();
 		try {
-			fieldValue = getFieldValue(object, field).toLowerCase();
+			map.position(objectsIndex[object + fieldIndex]);
+			int size = map.getInt();
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < size; i++) {
+				sb.append(map.getChar());
+			}
+			fieldValue = sb.toString();
 		} finally {
 			lock.unlock();
 		}
 
 		bornInf = bornInf.toLowerCase();
 		bornSupp = bornSupp.toLowerCase();
+		System.out.println(fieldValue);
 		if (bornInf.isEmpty()) {
 			try {
 				return Integer.parseInt(fieldValue) <= Integer.parseInt(bornSupp);
@@ -429,16 +435,10 @@ public class Reader {
 					}
 				}
 			}
-			System.out.println("TOTAL LIST");
-			System.out.println(totalList);
 			return totalList;
 		} finally {
 			lock.unlock();
 		}
-	}
-
-	public ArrayList<Tuple<Integer, String[]>> getAddList() {
-		return addList;
 	}
 
 	public void readHoles() throws IOException {
@@ -450,7 +450,7 @@ public class Reader {
 			}
 			FileInputStream in = new FileInputStream(holeFile);
 			FileChannel fc = in.getChannel();
-			MappedByteBuffer map = fc.map(MapMode.READ_WRITE, 0, fc.size());
+			MappedByteBuffer map = fc.map(MapMode.READ_ONLY, 0, fc.size());
 			while (map.remaining() >= (Integer.BYTES * 3)) {
 				this.holeList.addHole(map.getInt(), map.getInt(), map.getInt());
 			}
@@ -466,7 +466,7 @@ public class Reader {
 			RandomAccessFile raf = new RandomAccessFile(holeFile, "rw");
 			int lenght = this.holeList.size();
 			raf.setLength(lenght * 3 * Integer.BYTES);
-			MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght);
+			MappedByteBuffer map = raf.getChannel().map(MapMode.READ_WRITE, 0, lenght * 3 * Integer.BYTES);
 			Iterator<Integer> iterator = holeList.getIterator();
 			while (iterator.hasNext()) {
 				int value = iterator.next();
