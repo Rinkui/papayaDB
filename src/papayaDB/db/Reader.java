@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.sun.org.apache.xml.internal.serializer.ToUnknownStream;
+
 import papayaDB.structures.HoleList;
 import papayaDB.structures.Link;
 import papayaDB.structures.Tuple;
@@ -191,10 +193,10 @@ public class Reader {
 		}
 	}
 
-	private void addToAddList(int size, String[] object) {
+	private void addToAddList(int tableIndex, String[] object) {
 		if (addList == null)
 			addList = new ArrayList<Tuple<Integer, String[]>>();
-		addList.add(new Tuple<Integer, String[]>(size, object));
+		addList.add(new Tuple<Integer, String[]>(tableIndex, object));
 	}
 
 	private String[] objectToArray(List<Tuple<String, String>> object) {
@@ -220,7 +222,7 @@ public class Reader {
 		lock.lock();
 		try {
 			Link link = getNewIndex(modifedObj, size);
-			addToAddList(link.getMapIndex(), modifedObj);
+			addToAddList(link.getTableIndex(), modifedObj);
 			fillObjectsIndex(valuesSize, link.getTableIndex());
 			return link.getTableIndex();
 		} finally {
@@ -385,19 +387,35 @@ public class Reader {
 		lock.lock();
 		try {
 			if (!holeList.containsKey(object)) {
-				ArrayList<Tuple<String, String>> oneObject = new ArrayList<>();
-				oneObject.add(new Tuple<String, String>("id", String.valueOf(object)));
+				List<Tuple<String, String>> oneObject = new ArrayList<>();
 				for (int j = 0; j < fieldsNames.length; j++) {
 					String fieldName = fieldsNames[j];
 					String fieldValue = getFieldValue(object, fieldName);
 					oneObject.add(new Tuple<String, String>(fieldName, fieldValue));
 				}
+				if( oneObject.isEmpty()) 
+					oneObject = getFromAddList(object);
+				if( !oneObject.isEmpty())
+					oneObject.add(new Tuple<String, String>("id", String.valueOf(object)));
 				return oneObject;
 			}
 			return null;
 		} finally {
 			lock.unlock();
 		}
+	}
+	
+	private List<Tuple<String, String>> getFromAddList(int object){
+		List<Tuple<String, String>> objectList = new ArrayList<>();
+		for(Tuple<Integer, String[]> e : addList){
+			if( e.getKey() == object ){
+				objectList.add(new Tuple<String, String>("id", String.valueOf(object)));
+				for(int i = 0 ; i < fieldsNames.length ; i ++){
+					objectList.add(new Tuple<String, String>(fieldsNames[i], e.getValue()[i]));
+				}
+			}
+		}
+		return objectList;
 	}
 
 	public List<List<Tuple<String, String>>> getAll() {
@@ -408,6 +426,11 @@ public class Reader {
 				List<Tuple<String, String>> object = getObject(i);
 				if (object != null)
 					totalList.add(object);
+				else {
+					object = getFromAddList(i);
+					if( object != null )
+						totalList.add(object);					
+				}
 			}
 			System.out.println("TOTAL LIST");
 			System.out.println(totalList);

@@ -162,7 +162,7 @@ public class DataBase {
 		int index2 = db.add(object2);
 		int index3 = db.add(object3);
 		
-		db.writeAddedObjects();
+//		db.writeAddedObjects();
 		
 		System.out.println("\nGetAll");
 		System.out.println(db.getAll());
