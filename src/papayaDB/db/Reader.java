@@ -386,7 +386,7 @@ public class Reader {
 				for (int j = 0; j < fieldsNames.length; j++) {
 					String fieldName = fieldsNames[j];
 					String fieldValue = getFieldValue(object, fieldName);
-					if( !fieldValue.equals("") )
+					if (!fieldValue.equals(""))
 						oneObject.add(new Tuple<String, String>(fieldName, fieldValue));
 				}
 				if (oneObject.isEmpty())
@@ -418,13 +418,15 @@ public class Reader {
 		try {
 			ArrayList<List<Tuple<String, String>>> totalList = new ArrayList<>();
 			for (int i = 0; i < indexTableCapacity; i += fieldsNames.length) {
-				List<Tuple<String, String>> object = getObject(i);
-				if (!object.isEmpty())
-					totalList.add(object);
-				else {
-					object = getFromAddList(i);
+				if (!holeList.containsKey(i)) {
+					List<Tuple<String, String>> object = getObject(i);
 					if (!object.isEmpty())
 						totalList.add(object);
+					else {
+						object = getFromAddList(i);
+						if (!object.isEmpty())
+							totalList.add(object);
+					}
 				}
 			}
 			System.out.println("TOTAL LIST");
